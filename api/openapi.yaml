@@ -1,6 +1,6 @@
 # Passo 5: especificação OpenAPI da API. Validar no Swagger Editor (https://editor.swagger.io).
-# Está documentado apenas o recurso /products como exemplo.
-# TODO: documentar /auth, /producers, /orders, /auctions, /reviews e /admin.
+# Documentados os produtos e o detalhe público do produtor.
+# TODO: documentar /auth, a lista de /producers, /orders, /auctions, /reviews e /admin.
 openapi: 3.0.3
 info:
   title: Do Campo à Mesa API
@@ -9,6 +9,24 @@ info:
 servers:
   - url: http://localhost:3000/api
 paths:
+  /producers/{id}:
+    get:
+      tags: [Produtores]
+      summary: Consultar um produtor validado e os seus produtos
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Página pública do produtor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  produtor: { $ref: '#/components/schemas/ProducerPublic' }
+                  produtos: { type: array, items: { $ref: '#/components/schemas/Product' } }
+                  avaliacaoMedia: { type: number, nullable: true, minimum: 1, maximum: 5 }
+        '404': { description: Produtor inexistente, não validado ou ID inválido }
   /products:
     get:
       tags: [Produtos]
@@ -75,6 +93,23 @@ components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
   schemas:
+    ProducerPublic:
+      type: object
+      properties:
+        _id: { type: string }
+        nome: { type: string }
+        produtor:
+          type: object
+          properties:
+            nomeExploracao: { type: string }
+            descricao: { type: string }
+            localidade: { type: string }
+            validado: { type: boolean }
+            localizacao:
+              type: object
+              properties:
+                lat: { type: number }
+                lng: { type: number }
     ProductInput:
       type: object
       required: [nome, categoria, preco]
