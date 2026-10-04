@@ -1,5 +1,6 @@
 // Estado global da sessão (utilizador + token)
 import { createContext, useContext, useState } from 'react';
+import { api } from '../api/client.js';
 
 const AuthContext = createContext(null);
 
@@ -8,9 +9,10 @@ export function AuthProvider({ children }) {
     try { return JSON.parse(localStorage.getItem('sessao')) || null; } catch { return null; }
   });
 
-  // TODO (Passo 6): chamar POST /api/auth/login e guardar { token, utilizador }
-  async function entrar(email, password) { // eslint-disable-line no-unused-vars
-    throw new Error('Login por implementar');
+  async function entrar(email, password) {
+    const nova = await api('/auth/login', { metodo: 'POST', corpo: { email, password } });
+    guardarSessao(nova);
+    return nova.utilizador;
   }
 
   function sair() {
