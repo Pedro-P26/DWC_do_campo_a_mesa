@@ -1,26 +1,44 @@
 // Componente reutilizável: cartão de produto do catálogo
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Leaf, MapPin, ShoppingBasket } from 'lucide-react';
+
 const euro = (v) => v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
 
 export default function CartaoProduto({ produto, onAdicionar }) {
+  const [imagemFalhada, setImagemFalhada] = useState(null);
+  const categoria = (produto.categoria || 'Outros').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const localidade = produto.produtor?.produtor?.localidade;
+
   return (
     <article className="card cartao-produto h-100">
-      {produto.imagemUrl ? (
-        <img src={produto.imagemUrl} className="card-img-top" alt={produto.nome} />
-      ) : (
-        <div className="cartao-produto__imagem" aria-hidden="true" />
-      )}
+      <div className={`cartao-produto__media cat-${categoria}`}>
+        {produto.imagemUrl && imagemFalhada !== produto.imagemUrl ? (
+          <img src={produto.imagemUrl} alt={produto.nome} loading="lazy" width="700" height="500"
+            onError={() => setImagemFalhada(produto.imagemUrl)} />
+        ) : (
+          <div className="cartao-produto__imagem" aria-label={`Produto sem fotografia: ${produto.nome}`}>
+            <span className="cartao-produto__inicial" aria-hidden="true">{produto.nome.charAt(0)}</span>
+          </div>
+        )}
+        <span className={`cartao-produto__etiqueta cat-${categoria}`}>{produto.categoria || 'Outros'}</span>
+        {produto.biologico && <span className="etiqueta-bio"><Leaf size={12} aria-hidden="true" /> Biológico</span>}
+      </div>
       <div className="card-body d-flex flex-column">
-        {produto.biologico && <span className="etiqueta-bio">BIO</span>}
-        <h3 className="h6 mb-1">{produto.nome}</h3>
-        <p className="texto-secundario small mb-2">
-          {produto.produtor?.nome} · {produto.produtor?.produtor?.localidade}
+        <h3>{produto.nome}</h3>
+        {produto.stock === 0 && <span className="cartao-produto__esgotado">Esgotado</span>}
+        <p className="cartao-produto__produtor">
+          {produto.produtor?._id ? (
+            <Link to={`/produtores/${produto.produtor._id}`}>{produto.produtor.nome}</Link>
+          ) : produto.produtor?.nome}
         </p>
+        {localidade && <p className="cartao-produto__origem"><MapPin size={13} aria-hidden="true" />{localidade}</p>}
         <p className="preco mt-auto">
-          {euro(produto.preco)} <span className="texto-secundario small">/ {produto.unidade}</span>
+          {euro(produto.preco)} <span>/ {produto.unidade}</span>
         </p>
         {onAdicionar && (
-          <button type="button" className="btn btn-success w-100" onClick={onAdicionar}>
-            Adicionar ao carrinho
+          <button type="button" className="btn btn-success w-100" onClick={onAdicionar} disabled={produto.stock === 0}>
+            <ShoppingBasket size={16} aria-hidden="true" /> Adicionar
           </button>
         )}
       </div>

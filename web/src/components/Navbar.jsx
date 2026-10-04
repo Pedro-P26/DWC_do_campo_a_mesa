@@ -1,4 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
+import { Leaf } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCarrinho } from '../context/CarrinhoContext.jsx';
 
@@ -9,13 +10,13 @@ export default function Navbar() {
   return (
     <header className="barra-topo">
       <nav className="navbar navbar-expand-lg container-xl" aria-label="Navegação principal">
-        <Link to="/" className="navbar-brand marca">Do Campo à Mesa</Link>
+        <Link to="/" className="navbar-brand marca"><span className="marca__simbolo"><Leaf size={23} strokeWidth={1.7} aria-hidden="true" /></span>Do Campo à Mesa</Link>
         <button className="navbar-toggler" type="button" data-bs-toggle="collapse"
           data-bs-target="#menu" aria-controls="menu" aria-expanded="false" aria-label="Abrir menu">
           <span className="navbar-toggler-icon" />
         </button>
         <div className="collapse navbar-collapse" id="menu">
-          <ul className="navbar-nav me-auto">
+          <ul className="navbar-nav mx-lg-auto">
             <li className="nav-item"><NavLink to="/" end className="nav-link">Produtos</NavLink></li>
             <li className="nav-item"><NavLink to="/leiloes" className="nav-link">Leilões</NavLink></li>
             {utilizador?.papel === 'comprador' && (

@@ -3,9 +3,42 @@
 @import 'bootstrap/scss/bootstrap';
 @import 'mixins';
 @import 'catalogo';
+//@import 'leiloes';
+//@import 'paineis';
 
-.barra-topo { background: #fff; border-bottom: 1px solid $linha; }
-.marca { font-family: Georgia, serif; font-weight: 700; color: $tinta; }
+body { background: #f7f8f5; }
+.barra-topo {
+  background: #fff;
+  border-bottom: 1px solid #e2e8df;
+  .navbar { min-height: 76px; padding-inline: .75rem; }
+  .nav-link {
+    font-size: .9rem;
+    font-weight: 600;
+    padding: .75rem 1rem !important;
+    &.active { color: $verde; background: #edf3eb; border-radius: .5rem; }
+  }
+  .btn { border-radius: .5rem; font-size: .85rem; padding: .6rem 1rem; }
+  .navbar-collapse { padding-top: .75rem; padding-bottom: .75rem; }
+  @include a-partir-de(lg) { .navbar-collapse { padding: 0; } }
+}
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: .65rem;
+  font-family: Georgia, serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: $tinta;
+  &__simbolo {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #edf3eb;
+    color: $verde;
+  }
+}
 .texto-secundario { color: $texto-secundario; }
 
 .destaque h1 {

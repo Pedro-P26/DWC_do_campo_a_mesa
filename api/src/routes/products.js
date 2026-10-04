@@ -11,13 +11,15 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 // Exemplo já implementado; completar com os restantes filtros (época, produtor, ordenação…)
 router.get('/', async (req, res, next) => {
   try {
-    const { q, categoria, precoMax, bio } = req.query;
+    const { q, categoria, precoMax, bio, epoca } = req.query;
     const filtro = {};
     if (q) filtro.nome = { $regex: q, $options: 'i' };
     if (categoria && categoria !== 'Todos') filtro.categoria = categoria;
+    if (epoca && epoca !== 'Todas') filtro.epocas = epoca;
     if (precoMax) filtro.preco = { $lte: Number(precoMax) };
     if (bio === 'true') filtro.biologico = true;
-    // TODO: filtro por época ($in), por produtor e ordenação
+    if (bio === 'false') filtro.biologico = false;
+    // TODO: filtro por produtor e ordenação
     const lista = await Product.find(filtro).populate('produtor', 'nome produtor.localidade');
     res.json(lista);
   } catch (err) { next(err); }
