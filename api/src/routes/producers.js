@@ -4,10 +4,15 @@ const { isObjectIdOrHexString, Types } = require('mongoose');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
-const porFazer = require('./_naoImplementado');
+const a = require('../utils/async');
+const { escaparRegex } = require('../utils/validar');
 
 // GET /api/producers?localidade=  -> 200 [produtores validados]
-router.get('/', porFazer('Listar produtores validados'));
+router.get('/', a(async (req, res) => {
+  const filtro = { papel: 'produtor', 'produtor.validado': true };
+  if (req.query.localidade) filtro['produtor.localidade'] = { $regex: escaparRegex(req.query.localidade), $options: 'i' };
+  res.json(await User.find(filtro).select('nome produtor').sort({ nome: 1 }));
+}));
 
 // GET /api/producers/:id  -> 200 { produtor, produtos, avaliacaoMedia }
 router.get('/:id', async (req, res, next) => {

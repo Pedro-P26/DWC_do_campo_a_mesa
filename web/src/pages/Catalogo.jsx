@@ -49,7 +49,7 @@ export default function Catalogo() {
       q: filtro.q,
       categoria: filtro.categoria,
       epoca: filtro.epoca,
-      bio: filtro.modoBio === 'Todos' ? '' : String(filtro.modoBio === 'Biologico')
+      ...(filtro.modoBio === 'Todos' ? {} : { bio: String(filtro.modoBio === 'Biologico') })
     };
     const q = new URLSearchParams(parametros);
     const controller = new AbortController();

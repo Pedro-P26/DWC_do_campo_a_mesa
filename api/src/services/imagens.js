@@ -1,6 +1,11 @@
 // Passo 8: guardar as imagens dos produtos no storage da Cloud (Azure Blob Storage).
 // Em AWS: @aws-sdk/client-s3 · Em Google Cloud: @google-cloud/storage
 const { BlobServiceClient } = require('@azure/storage-blob');
+const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs/promises');
+const erro = require('../utils/erro');
+const TIPOS = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
 let container;
 function obterContainer() {
@@ -17,9 +22,17 @@ function obterContainer() {
  * @param {{ buffer: Buffer, originalname: string, mimetype: string }} ficheiro (multer)
  * @returns {Promise<string>} URL público da imagem
  */
-async function guardarImagem(ficheiro) {
-  // TODO: validar o tipo (image/jpeg, image/png, image/webp) e gerar um nome único
-  const blob = obterContainer().getBlockBlobClient(`${Date.now()}-${ficheiro.originalname}`);
+async function guardarImagem(ficheiro, req) {
+  const extensao = Object.hasOwn(TIPOS, ficheiro.mimetype) ? TIPOS[ficheiro.mimetype] : undefined;
+  if (!extensao) throw erro(400, 'Formato de imagem não suportado (JPEG, PNG ou WebP)');
+  const nome = `${crypto.randomUUID()}${extensao}`;
+  if (!process.env.STORAGE_CONN) {
+    const pasta = path.join(__dirname, '..', '..', 'uploads');
+    await fs.mkdir(pasta, { recursive: true });
+    await fs.writeFile(path.join(pasta, nome), ficheiro.buffer);
+    return `${req.protocol}://${req.get('host')}/uploads/${nome}`;
+  }
+  const blob = obterContainer().getBlockBlobClient(nome);
   await blob.uploadData(ficheiro.buffer, {
     blobHTTPHeaders: { blobContentType: ficheiro.mimetype }
   });
