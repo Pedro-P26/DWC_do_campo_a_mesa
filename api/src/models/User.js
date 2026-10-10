@@ -2,20 +2,30 @@
 const { Schema, model } = require('mongoose');
 
 const userSchema = new Schema({
-  nome: { type: String, required: true, trim: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  nome: { type: String, required: true, trim: true, maxlength: 100 },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
   passwordHash: { type: String, required: true, select: false },
   papel: { type: String, enum: ['comprador', 'produtor', 'admin'], default: 'comprador' },
 
   // Dados específicos do produtor (página pública)
   produtor: {
     nomeExploracao: String,
-    descricao: String,
+    descricao: { type: String, maxlength: 1000 },
     localidade: String,
     localizacao: { lat: Number, lng: Number },
     validado: { type: Boolean, default: false } // o administrador valida o registo
   }
-  // TODO (Passo 4): favoritos? morada de entrega? tipo de comprador (particular/restaurante)?
-}, { timestamps: true });
+}, {
+  timestamps: true,
+  toJSON: { transform: (doc, dados) => { delete dados.passwordHash; return dados; } }
+});
+
+userSchema.methods.publico = function publico() {
+  return {
+    _id: this._id, id: this._id, nome: this.nome, email: this.email, papel: this.papel,
+    ...(this.papel === 'produtor' ? { produtor: this.produtor } : {})
+  };
+};
+userSchema.index({ papel: 1, 'produtor.validado': 1 });
 
 module.exports = model('User', userSchema);
