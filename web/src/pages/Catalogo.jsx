@@ -25,7 +25,7 @@ const ORDENACOES = [
 
 export default function Catalogo() {
   const [produtos, setProdutos] = useState([]);
-  const [filtro, setFiltro] = useState({ q: '', categoria: 'Todos', epoca: 'Todas', modoBio: 'Todos' });
+  const [filtro, setFiltro] = useState({ q: '', categoria: 'Todos', epoca: 'Todas', modoBio: 'Todos', precoMax: '' });
   const [ordenacao, setOrdenacao] = useState('original');
   const [erro, setErro] = useState('');
   const [aCarregar, setACarregar] = useState(!USAR_DADOS_SIMULADOS);
@@ -33,6 +33,11 @@ export default function Catalogo() {
   const { utilizador } = useAuth();
 
   useEffect(() => {
+    if (filtro.precoMax !== '' && (!Number.isFinite(Number(filtro.precoMax)) || Number(filtro.precoMax) < 0)) {
+      setErro('O preço máximo deve ser um número igual ou superior a zero.');
+      setACarregar(false);
+      return;
+    }
     if (USAR_DADOS_SIMULADOS) {
       // Semana 2: filtragem local sobre dados simulados
       setProdutos(produtosSimulados.filter((p) =>
@@ -40,6 +45,7 @@ export default function Catalogo() {
         (filtro.epoca === 'Todas' || p.epocas?.includes(filtro.epoca)) &&
         (filtro.modoBio === 'Todos' ||
           (filtro.modoBio === 'Biologico' ? p.biologico : !p.biologico)) &&
+        (filtro.precoMax === '' || p.preco <= Number(filtro.precoMax)) &&
         p.nome.toLowerCase().includes(filtro.q.toLowerCase())));
       setErro('');
       setACarregar(false);
@@ -49,6 +55,7 @@ export default function Catalogo() {
       q: filtro.q,
       categoria: filtro.categoria,
       epoca: filtro.epoca,
+      ...(filtro.precoMax === '' ? {} : { precoMax: filtro.precoMax }),
       ...(filtro.modoBio === 'Todos' ? {} : { bio: String(filtro.modoBio === 'Biologico') })
     };
     const q = new URLSearchParams(parametros);
@@ -87,7 +94,7 @@ export default function Catalogo() {
     setFiltro((f) => ({ ...f, [campo]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
   const temFiltros = filtro.q !== '' || filtro.categoria !== 'Todos' ||
-    filtro.epoca !== 'Todas' || filtro.modoBio !== 'Todos' || ordenacao !== 'original';
+    filtro.epoca !== 'Todas' || filtro.modoBio !== 'Todos' || filtro.precoMax !== '' || ordenacao !== 'original';
 
   return (
     <>
@@ -149,14 +156,18 @@ export default function Catalogo() {
             ))}
           </select>
         </div>
-        {/* TODO: filtro por preço máximo */}
+        <div className="filtros__grupo">
+          <label className="filtros__legenda" htmlFor="preco-max">Preço máximo (€)</label>
+          <input id="preco-max" type="number" className="form-control" min="0" step="0.01"
+            placeholder="Sem limite" value={filtro.precoMax} onChange={mudar('precoMax')} />
+        </div>
       </section>
 
       <div className="filtros__resumo">
         <span className="texto-secundario" role="status"><strong>{produtos.length}</strong> {produtos.length === 1 ? 'produto encontrado' : 'produtos encontrados'}</span>
         <button type="button" className="btn btn-link filtros__limpar" disabled={!temFiltros}
           onClick={() => {
-            setFiltro({ q: '', categoria: 'Todos', epoca: 'Todas', modoBio: 'Todos' });
+            setFiltro({ q: '', categoria: 'Todos', epoca: 'Todas', modoBio: 'Todos', precoMax: '' });
             setOrdenacao('original');
           }}>
           <X size={14} aria-hidden="true" /> Limpar filtros
