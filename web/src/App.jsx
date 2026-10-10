@@ -1,9 +1,11 @@
 // Passo 2: routing no cliente
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
+import Notificacoes from './components/Notificacoes.jsx';
 import RotaProtegida from './components/RotaProtegida.jsx';
 import Catalogo from './pages/Catalogo.jsx';
 import Produtor from './pages/Produtor.jsx';
+import Produto from './pages/Produto.jsx';
 import Leiloes from './pages/Leiloes.jsx';
 import SalaLeilao from './pages/SalaLeilao.jsx';
 import Carrinho from './pages/Carrinho.jsx';
@@ -19,18 +21,22 @@ export default function App() {
   return (
     <>
       <Navbar />
+      <Notificacoes />
       <main className="container-xl py-4">
         <Routes>
           {/* Visitante */}
           <Route path="/" element={<Catalogo />} />
           <Route path="/produtores/:id" element={<Produtor />} />
+          <Route path="/produtos/:id" element={<Produto />} />
           <Route path="/leiloes" element={<Leiloes />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registo" element={<Registo />} />
 
           {/* Comprador */}
-          <Route element={<RotaProtegida papeis={['comprador']} />}>
+          <Route element={<RotaProtegida />}>
             <Route path="/leiloes/:id" element={<SalaLeilao />} />
+          </Route>
+          <Route element={<RotaProtegida papeis={['comprador']} />}>
             <Route path="/carrinho" element={<Carrinho />} />
             <Route path="/encomendas" element={<Encomendas />} />
           </Route>

@@ -12,7 +12,8 @@ export default function CartaoProduto({ produto, onAdicionar }) {
 
   return (
     <article className="card cartao-produto h-100">
-      <div className={`cartao-produto__media cat-${categoria}`}>
+      <Link to={`/produtos/${produto._id}`} className={`cartao-produto__media cat-${categoria}`}
+        aria-label={`Ver detalhes de ${produto.nome}`}>
         {produto.imagemUrl && imagemFalhada !== produto.imagemUrl ? (
           <img src={produto.imagemUrl} alt={produto.nome} loading="lazy" width="700" height="500"
             onError={() => setImagemFalhada(produto.imagemUrl)} />
@@ -23,9 +24,9 @@ export default function CartaoProduto({ produto, onAdicionar }) {
         )}
         <span className={`cartao-produto__etiqueta cat-${categoria}`}>{produto.categoria || 'Outros'}</span>
         {produto.biologico && <span className="etiqueta-bio"><Leaf size={12} aria-hidden="true" /> Biológico</span>}
-      </div>
+      </Link>
       <div className="card-body d-flex flex-column">
-        <h3>{produto.nome}</h3>
+        <h3><Link to={`/produtos/${produto._id}`}>{produto.nome}</Link></h3>
         {produto.stock === 0 && <span className="cartao-produto__esgotado">Esgotado</span>}
         <p className="cartao-produto__produtor">
           {produto.produtor?._id ? (
