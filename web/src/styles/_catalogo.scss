@@ -40,7 +40,8 @@
   gap: 1rem;
   grid-template-columns: repeat(2, minmax(0, 1fr)); // telemóvel: 2 colunas
   @include a-partir-de(md) { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem;}
-  @include a-partir-de(xl) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.5rem; }
+  @include a-partir-de(lg) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  @include a-partir-de(xl) { gap: 1.5rem; }
 }
 
 $cores-categoria: (
@@ -83,8 +84,8 @@ $cores-categoria: (
     border-radius: .25rem;
     font-size: .65rem; font-weight: 700;
   }
-  .card-body { padding: 1rem; }
-  h3 { font-size: .95rem; line-height: 1.35; font-weight: 700; margin-bottom: .35rem; overflow-wrap: anywhere; }
+  .card-body { padding: .75rem; }
+  h3 { font-size: .85rem; line-height: 1.35; font-weight: 700; margin-bottom: .35rem; overflow-wrap: anywhere; }
   &__produtor { font-size: .8rem; color: $texto-secundario; margin-bottom: .3rem; }
   &__produtor a { color: inherit; &:hover { color: $verde; text-decoration: underline; } }
   &__origem {
@@ -93,7 +94,7 @@ $cores-categoria: (
     svg { flex-shrink: 0; margin-top: .1rem; }
   }
   .preco {
-    color: $verde-escuro; font-weight: 700; font-size: 1.2rem;
+    color: $verde-escuro; font-weight: 700; font-size: 1.05rem;
     border-top: 1px solid #edf0ea; padding-top: .75rem; margin-bottom: 0;
     span { color: $texto-secundario; font-size: .75rem; font-weight: 400; }
   }
@@ -106,10 +107,10 @@ $cores-categoria: (
     border-radius: .25rem;
     background: #fff; color: $verde-escuro;
   }
-  @media (max-width: 400px) {
-    .card-body { padding: .75rem; }
-    h3 { font-size: .85rem; }
-    .preco { font-size: 1.05rem; }
+  @include a-partir-de(md) {
+    .card-body { padding: 1rem; }
+    h3 { font-size: .95rem; }
+    .preco { font-size: 1.2rem; }
   }
 }
 
@@ -125,8 +126,8 @@ $cores-categoria: (
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .75rem;
   padding: 1rem 0 .75rem;
-  @include a-partir-de(md) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  @include a-partir-de(xl) { grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr)); }
+  @include a-partir-de(md) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @include a-partir-de(xl) { grid-template-columns: minmax(0, 1.6fr) repeat(5, minmax(0, 1fr)); }
 
   .form-control, .form-select {
     min-height: 44px;
@@ -142,7 +143,7 @@ $cores-categoria: (
 
   &__pesquisa {
     grid-column: 1 / -1;
-    @include a-partir-de(md) { grid-column: 1 / -1; }
+    @include a-partir-de(lg) { grid-column: auto; }
     @include a-partir-de(xl) { grid-column: auto; }
   }
 
