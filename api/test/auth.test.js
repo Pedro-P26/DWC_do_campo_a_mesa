@@ -15,11 +15,11 @@ test('Login: credenciais, JWT e controlo de acesso', async (t) => {
   process.env.JWT_SECRET = 'segredo-apenas-para-o-teste-local';
   process.env.JWT_EXPIRES_IN = '2h';
 
-  const conta = {
+  const conta = new User({
     _id: '507f1f77bcf86cd799439011', nome: 'Produtor de teste',
     email: 'produtor@exemplo.pt', papel: 'produtor',
     passwordHash: await bcrypt.hash('password-de-teste', 4)
-  };
+  });
   User.findOne = (filtro) => ({
     select: async (campos) => {
       assert.equal(campos, '+passwordHash');
@@ -59,12 +59,13 @@ test('Login: credenciais, JWT e controlo de acesso', async (t) => {
       const resposta = await login({ email: ' PRODUTOR@EXEMPLO.PT ', password: 'password-de-teste' });
       assert.equal(resposta.status, 200);
       const dados = await resposta.json();
-      assert.equal(dados.utilizador._id, conta._id);
+      assert.equal(dados.utilizador._id, conta._id.toString());
       assert.equal(dados.utilizador.papel, 'produtor');
       assert.ok(!('passwordHash' in dados.utilizador));
       const payload = jwt.verify(dados.token, process.env.JWT_SECRET);
-      assert.equal(payload.id, conta._id);
+      assert.equal(payload.id, conta._id.toString());
       assert.equal(payload.papel, 'produtor');
+      assert.equal(payload.nome, conta.nome);
       assert.equal(payload.exp - payload.iat, 7200);
       const headers = { Authorization: `Bearer ${dados.token}` };
       assert.equal((await fetch(`${base}/produtor`, { headers })).status, 200);
