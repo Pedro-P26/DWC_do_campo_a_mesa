@@ -8,11 +8,14 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
-app.use(express.json());
+app.use(cors({ origin: (origin, callback) => callback(null,
+  !origin || origin === (process.env.CLIENT_URL || 'http://localhost:5173')) }));
+app.use(express.json({ limit: '1mb' }));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Passo 5: documentação OpenAPI em /api-docs
 const openapi = YAML.load(path.join(__dirname, '..', 'openapi.yaml'));
+app.get('/openapi.json', (req, res) => res.json(openapi));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapi));
 
 app.get('/api/health', (req, res) => res.json({ estado: 'ok' }));
