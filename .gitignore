@@ -3,3 +3,6 @@ dist/
 .env
 *.log
 .DS_Store
+api/uploads/
+api/test-results/
+api/playwright-report/

@@ -7,9 +7,19 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed": "node src/seed/seed.js"
+    "seed": "node src/seed/seed.js",
+    "test": "node --test test/*.test.js",
+    "docs:validate": "node scripts/validar-openapi.js",
+    "test:browser:frontend": "node test/browser/frontend.js --keep-open",
+    "test:browser": "node test/browser/passo5.js",
+    "test:browser:visible": "node test/browser/passo5.js --keep-open",
+    "test:browser:passo6": "node test/browser/passo5.js --passo6 --keep-open",
+    "test:browser:passo7": "node test/browser/passo5.js --passo7 --keep-open",
+    "test:browser:painel-produtor": "node test/browser/passo5.js --painel-produtor --keep-open"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20.19"
+  },
   "dependencies": {
     "@azure/storage-blob": "^12.24.0",
     "bcryptjs": "^2.4.3",
@@ -24,6 +34,9 @@
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^13.0.0",
+    "@playwright/test": "^1.64.0",
+    "mongodb-memory-server": "^11.3.0",
     "nodemon": "^3.1.7"
   }
 }

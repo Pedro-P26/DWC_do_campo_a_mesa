@@ -1,132 +1,1605 @@
-# Passo 5: especificação OpenAPI da API. Validar no Swagger Editor (https://editor.swagger.io).
-# Documentados os produtos e o detalhe público do produtor.
-# TODO: documentar /auth, a lista de /producers, /orders, /auctions, /reviews e /admin.
 openapi: 3.0.3
 info:
   title: Do Campo à Mesa API
   version: 0.1.0
   description: API REST do mercado digital de produtores locais.
 servers:
-  - url: http://localhost:3000/api
+  -
+    url: /api
+    description: 'API na mesma origem que a documentação (desenvolvimento e cloud).'
+security: []
+tags:
+  -
+    name: Sistema
+    description: 'Disponibilidade da API.'
+  -
+    name: 'Autenticação'
+    description: 'Registo, login e perfil.'
+  -
+    name: Produtos
+    description: 'Catálogo e gestão de produtos.'
+  -
+    name: Produtores
+    description: 'Perfis públicos dos produtores.'
+  -
+    name: Encomendas
+    description: 'Compras, stock e estados.'
+  -
+    name: 'Leilões'
+    description: 'Lotes e histórico de licitações.'
+  -
+    name: 'Avaliações'
+    description: 'Avaliações e denúncias.'
+  -
+    name: 'Administração'
+    description: 'Estatísticas, validação e moderação.'
 paths:
-  /producers/{id}:
+  /health:
     get:
-      tags: [Produtores]
-      summary: Consultar um produtor validado e os seus produtos
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+      operationId: health
+      tags:
+        - Sistema
+      summary: 'Verificar disponibilidade da API'
       responses:
         '200':
-          description: Página pública do produtor
+          description: 'API disponível.'
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  produtor: { $ref: '#/components/schemas/ProducerPublic' }
-                  produtos: { type: array, items: { $ref: '#/components/schemas/Product' } }
-                  avaliacaoMedia: { type: number, nullable: true, minimum: 1, maximum: 5 }
-        '404': { description: Produtor inexistente, não validado ou ID inválido }
-  /products:
-    get:
-      tags: [Produtos]
-      summary: Pesquisar produtos
-      parameters:
-        - { name: q, in: query, description: Texto no nome, schema: { type: string } }
-        - { name: categoria, in: query, schema: { type: string } }
-        - { name: precoMax, in: query, schema: { type: number } }
-        - { name: bio, in: query, schema: { type: boolean } }
-      responses:
-        '200':
-          description: Lista de produtos
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/Product' }
+                $ref: '#/components/schemas/Health'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /auth/registo:
     post:
-      tags: [Produtos]
-      summary: Criar produto (produtor)
-      security: [ { bearerAuth: [] } ]
+      operationId: register
+      tags:
+        - 'Autenticação'
+      summary: 'Registar comprador ou produtor'
+      responses:
+        '201':
+          description: 'Utilizador registado; produtor fica por validar.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/InternalError'
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/ProductInput' }
-      responses:
-        '201': { description: Produto criado }
-        '400': { description: Dados inválidos }
-        '401': { description: Token em falta ou inválido }
-        '403': { description: Utilizador não é produtor }
-  /products/{id}:
-    parameters:
-      - { name: id, in: path, required: true, schema: { type: string } }
-    get:
-      tags: [Produtos]
-      summary: Detalhe de um produto
+            schema:
+              $ref: '#/components/schemas/RegisterInput'
+            example:
+              nome: 'Novo comprador'
+              email: novo@exemplo.pt
+              password: password123
+              papel: comprador
+  /auth/login:
+    post:
+      operationId: login
+      tags:
+        - 'Autenticação'
+      summary: 'Iniciar sessão e obter JWT'
       responses:
         '200':
-          description: Produto
+          description: 'Sessão iniciada; hash nunca é devolvido.'
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Product' }
-        '404': { description: Não encontrado }
-    put:
-      tags: [Produtos]
-      summary: Atualizar produto (produtor dono)
-      security: [ { bearerAuth: [] } ]
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/InternalError'
       requestBody:
+        required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/ProductInput' }
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+            example:
+              email: tasca@exemplo.pt
+              password: password123
+  /auth/eu:
+    get:
+      operationId: currentUser
+      tags:
+        - 'Autenticação'
+      summary: 'Consultar perfil autenticado'
       responses:
-        '200': { description: Produto atualizado }
-        '404': { description: Não encontrado }
+        '200':
+          description: 'Perfil público do utilizador.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+  /products:
+    get:
+      operationId: listProducts
+      tags:
+        - Produtos
+      summary: 'Pesquisar produtos'
+      responses:
+        '200':
+          description: 'Produtos encontrados.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      parameters:
+        -
+          name: q
+          in: query
+          description: 'Texto literal no nome; sem distinguir maiúsculas.'
+          schema:
+            type: string
+        -
+          name: categoria
+          in: query
+          description: 'Categoria ou Todos para não filtrar.'
+          schema:
+            type: string
+        -
+          name: precoMax
+          in: query
+          schema:
+            type: number
+            minimum: 0
+        -
+          name: bio
+          in: query
+          schema:
+            type: boolean
+        -
+          name: epoca
+          in: query
+          description: 'Época ou Todas para não filtrar.'
+          schema:
+            type: string
+        -
+          name: produtor
+          in: query
+          schema:
+            $ref: '#/components/schemas/ObjectId'
+        -
+          name: ordenar
+          in: query
+          schema:
+            type: string
+            enum:
+              - recentes
+              - preco_asc
+              - preco_desc
+              - nome
+            default: recentes
+    post:
+      operationId: createProduct
+      tags:
+        - Produtos
+      summary: 'Criar produto (produtor validado)'
+      responses:
+        '201':
+          description: 'Produto criado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          headers:
+            Location:
+              description: 'Caminho relativo do recurso criado.'
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+            example:
+              nome: 'Kiwi Hayward'
+              categoria: Fruta
+              preco: 2.4
+              stock: 20
+      description: 'O servidor atribui produtor a partir do JWT. Um produtor não validado recebe 403.'
+  '/products/{id}':
+    parameters:
+      -
+        $ref: '#/components/parameters/Id'
+    get:
+      operationId: getProduct
+      tags:
+        - Produtos
+      summary: 'Consultar produto'
+      responses:
+        '200':
+          description: 'Produto com dados do produtor.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      operationId: updateProduct
+      tags:
+        - Produtos
+      summary: 'Atualizar produto próprio'
+      responses:
+        '200':
+          description: 'Produto atualizado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+            example:
+              preco: 3
+      description: 'Só os campos enviados são alterados. Produto de outro produtor devolve 404.'
     delete:
-      tags: [Produtos]
-      summary: Remover produto (produtor dono)
-      security: [ { bearerAuth: [] } ]
+      operationId: deleteProduct
+      tags:
+        - Produtos
+      summary: 'Remover produto próprio'
       responses:
-        '204': { description: Removido }
-        '404': { description: Não encontrado }
+        '204':
+          description: 'Produto removido; sem corpo.'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+  '/products/{id}/imagem':
+    parameters:
+      -
+        $ref: '#/components/parameters/Id'
+    post:
+      operationId: uploadProductImage
+      tags:
+        - Produtos
+      summary: 'Enviar imagem de produto próprio'
+      responses:
+        '200':
+          description: 'URL da imagem guardada.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+      description: 'JPEG, PNG ou WebP até 5 MB. Sem armazenamento cloud configurado, guarda localmente. Formato/tamanho inválido ou ficheiro ausente devolve 400.'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - imagem
+              properties:
+                imagem:
+                  type: string
+                  format: binary
+  /producers:
+    get:
+      operationId: listProducers
+      tags:
+        - Produtores
+      summary: 'Listar produtores validados'
+      responses:
+        '200':
+          description: 'Perfis públicos dos produtores.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProducerPublic'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      parameters:
+        -
+          name: localidade
+          in: query
+          description: 'Pesquisa literal parcial, sem distinguir maiúsculas.'
+          schema:
+            type: string
+  '/producers/{id}':
+    parameters:
+      -
+        $ref: '#/components/parameters/Id'
+    get:
+      operationId: getProducer
+      tags:
+        - Produtores
+      summary: 'Consultar produtor, produtos e avaliação média'
+      responses:
+        '200':
+          description: 'Página pública do produtor.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProducerPage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      description: 'Produtor inexistente, não validado ou identificador inválido devolve 404. A média é null quando não há avaliações visíveis.'
+  /orders:
+    get:
+      operationId: listOrders
+      tags:
+        - Encomendas
+      summary: 'Listar encomendas do utilizador'
+      responses:
+        '200':
+          description: 'Encomendas; referências de utilizadores populadas.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+      description: 'Comprador vê as suas compras, produtor vê as suas vendas, administrador vê todas.'
+    post:
+      operationId: createOrders
+      tags:
+        - Encomendas
+      summary: 'Encomendar produtos (comprador)'
+      responses:
+        '201':
+          description: 'Uma encomenda por produtor.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderInput'
+      description: 'Reserva stock atomicamente, junta produtos repetidos e copia nome/preço/unidade. Produto indisponível ou stock insuficiente devolve 409 e repõe as reservas do pedido.'
+  '/orders/{id}':
+    parameters:
+      -
+        $ref: '#/components/parameters/Id'
+    get:
+      operationId: getOrder
+      tags:
+        - Encomendas
+      summary: 'Consultar encomenda autorizada'
+      responses:
+        '200':
+          description: 'Encomenda do comprador/produtor ou consultada por administrador.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+  '/orders/{id}/estado':
+    parameters:
+      -
+        $ref: '#/components/parameters/Id'
+    patch:
+      operationId: updateOrderState
+      tags:
+        - Encomendas
+      summary: 'Avançar estado de encomenda própria (produtor)'
+      responses:
+        '200':
+          description: 'Encomenda atualizada.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStateInput'
+            example:
+              estado: confirmada
+      description: 'Estado só pode avançar; pode saltar estados. Repetir ou recuar devolve 409, encomenda de outro produtor devolve 404.'
+  /auctions:
+    get:
+      operationId: listAuctions
+      tags:
+        - 'Leilões'
+      summary: 'Listar leilões'
+      responses:
+        '200':
+          description: 'Leilões com produtor populado.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Auction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      parameters:
+        -
+          name: estado
+          in: query
+          schema:
+            $ref: '#/components/schemas/EstadoLeilao'
+    post:
+      operationId: createAuction
+      tags:
+        - 'Leilões'
+      summary: 'Criar leilão (produtor validado)'
+      responses:
+        '201':
+          description: 'Leilão criado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auction'
+          headers:
+            Location:
+              description: 'Caminho relativo do recurso criado.'
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuctionInput'
+            example:
+              lote: 'Lote de kiwi'
+              quantidade: '10 kg'
+              precoBase: 10
+              incremento: 1
+              duracaoMinutos: 30
+      description: 'Indicar terminaEm ou duração em minutos. O servidor define estado, produtor e licitacaoAtual.valor=precoBase. produto, se enviado, tem de pertencer ao produtor.'
+  '/auctions/{id}':
+    parameters:
+      -
+        $ref: '#/components/parameters/Id'
+    get:
+      operationId: getAuction
+      tags:
+        - 'Leilões'
+      summary: 'Consultar leilão e últimas 20 licitações'
+      responses:
+        '200':
+          description: 'Leilão e licitações por data decrescente.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuctionDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  '/auctions/{id}/bids':
+    parameters:
+      -
+        $ref: '#/components/parameters/Id'
+    get:
+      operationId: listBids
+      tags:
+        - 'Leilões'
+      summary: 'Consultar histórico de licitações'
+      responses:
+        '200':
+          description: 'Histórico por data decrescente.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bid'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /reviews:
+    get:
+      operationId: listReviews
+      tags:
+        - 'Avaliações'
+      summary: 'Listar avaliações visíveis'
+      responses:
+        '200':
+          description: 'Avaliações com autor populado.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      parameters:
+        -
+          name: produtor
+          in: query
+          schema:
+            $ref: '#/components/schemas/ObjectId'
+        -
+          name: produto
+          in: query
+          schema:
+            $ref: '#/components/schemas/ObjectId'
+    post:
+      operationId: createReview
+      tags:
+        - 'Avaliações'
+      summary: 'Avaliar encomenda entregue própria (comprador)'
+      responses:
+        '201':
+          description: 'Avaliação criada.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+      description: 'Produtor e autor são definidos pelo servidor. Produto opcional tem de estar nas linhas. Uma avaliação por encomenda/autor/produto; duplicação devolve 409.'
+  '/reviews/{id}/denuncia':
+    parameters:
+      -
+        $ref: '#/components/parameters/Id'
+    post:
+      operationId: reportReview
+      tags:
+        - 'Avaliações'
+      summary: 'Denunciar avaliação visível'
+      responses:
+        '204':
+          description: 'Denúncia registada; sem corpo.'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+  /admin/estatisticas:
+    get:
+      operationId: adminStatistics
+      tags:
+        - 'Administração'
+      summary: 'Consultar estatísticas globais (admin)'
+      responses:
+        '200':
+          description: 'Contagens da aplicação.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statistics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+  /admin/produtores/pendentes:
+    get:
+      operationId: pendingProducers
+      tags:
+        - 'Administração'
+      summary: 'Listar produtores por validar (admin)'
+      responses:
+        '200':
+          description: 'Produtores pendentes, incluindo email.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProducerPublic'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+  '/admin/produtores/{id}/validacao':
+    parameters:
+      -
+        $ref: '#/components/parameters/Id'
+    patch:
+      operationId: validateProducer
+      tags:
+        - 'Administração'
+      summary: 'Aprovar ou rejeitar produtor (admin)'
+      responses:
+        '200':
+          description: 'Produtor atualizado, incluindo email.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProducerPublic'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidationInput'
+            example:
+              aprovado: true
+  /admin/reviews/denunciadas:
+    get:
+      operationId: reportedReviews
+      tags:
+        - 'Administração'
+      summary: 'Listar avaliações denunciadas (admin)'
+      responses:
+        '200':
+          description: 'Avaliações com autor/produtor populados, incluindo as ocultas.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+  '/admin/reviews/{id}':
+    parameters:
+      -
+        $ref: '#/components/parameters/Id'
+    patch:
+      operationId: moderateReview
+      tags:
+        - 'Administração'
+      summary: 'Ocultar ou repor avaliação (admin)'
+      responses:
+        '200':
+          description: 'Avaliação moderada.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      security:
+        -
+          bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerationInput'
+            example:
+              visivel: false
 components:
   securitySchemes:
-    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'No botão Authorize, colar apenas o token devolvido pelo login, sem o prefixo Bearer.'
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: 'Identificador ObjectId de 24 caracteres hexadecimais.'
+      schema:
+        $ref: '#/components/schemas/ObjectId'
+  responses:
+    BadRequest:
+      description: 'Dados, parâmetros ou identificador inválidos; detalhes de validação quando disponíveis.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    Unauthorized:
+      description: 'Token em falta, inválido ou expirado; no login, credenciais incorretas.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    Forbidden:
+      description: 'Papel sem permissão ou produtor ainda não validado.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    NotFound:
+      description: 'Recurso inexistente ou inacessível ao utilizador.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    Conflict:
+      description: 'Conflito: email/avaliação duplicados, stock insuficiente ou recuo/repetição de estado.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    PayloadTooLarge:
+      description: 'Corpo JSON excede o limite de 1 MB.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    InternalError:
+      description: 'Erro interno; sem stack trace ou detalhes do servidor.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
   schemas:
-    ProducerPublic:
+    ObjectId:
+      type: string
+      pattern: '^[a-fA-F0-9]{24}$'
+      example: 507f1f77bcf86cd799439011
+    Categoria:
+      type: string
+      enum:
+        - 'Hortícolas'
+        - Fruta
+        - Mel
+        - Vinho
+        - Queijo
+        - Padaria
+        - Outros
+    Epoca:
+      type: string
+      enum:
+        - Primavera
+        - 'Verão'
+        - Outono
+        - Inverno
+    EstadoEncomenda:
+      type: string
+      enum:
+        - pendente
+        - confirmada
+        - pronta
+        - entregue
+    EstadoLeilao:
+      type: string
+      enum:
+        - agendado
+        - ativo
+        - terminado
+    Erro:
+      type: object
+      required:
+        - erro
+      properties:
+        erro:
+          type: string
+          example: 'Dados inválidos'
+        detalhes:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            categoria: 'Path `categoria` is required.'
+    ProducerDetails:
       type: object
       properties:
-        _id: { type: string }
-        nome: { type: string }
-        produtor:
+        nomeExploracao:
+          type: string
+        descricao:
+          type: string
+          maxLength: 1000
+        localidade:
+          type: string
+        localizacao:
           type: object
           properties:
-            nomeExploracao: { type: string }
-            descricao: { type: string }
-            localidade: { type: string }
-            validado: { type: boolean }
-            localizacao:
-              type: object
-              properties:
-                lat: { type: number }
-                lng: { type: number }
-    ProductInput:
+            lat:
+              type: number
+            lng:
+              type: number
+        validado:
+          type: boolean
+    ActorPublic:
       type: object
-      required: [nome, categoria, preco]
+      required:
+        - _id
+        - nome
       properties:
-        nome: { type: string, example: Kiwi Hayward }
-        categoria: { type: string, enum: [Hortícolas, Fruta, Mel, Vinho, Queijo, Padaria, Outros] }
-        preco: { type: number, example: 2.4 }
-        unidade: { type: string, example: kg }
-        stock: { type: integer, example: 300 }
-        biologico: { type: boolean }
-        epocas: { type: array, items: { type: string } }
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        nome:
+          type: string
+    ProducerPublic:
+      allOf:
+        -
+          $ref: '#/components/schemas/ActorPublic'
+        -
+          type: object
+          properties:
+            produtor:
+              $ref: '#/components/schemas/ProducerDetails'
+            email:
+              type: string
+              format: email
+              description: 'Incluído apenas nas respostas do administrador.'
+    UserPublic:
+      allOf:
+        -
+          $ref: '#/components/schemas/ActorPublic'
+        -
+          type: object
+          required:
+            - id
+            - email
+            - papel
+          properties:
+            id:
+              $ref: '#/components/schemas/ObjectId'
+            email:
+              type: string
+              format: email
+            papel:
+              type: string
+              enum:
+                - comprador
+                - produtor
+                - admin
+            produtor:
+              $ref: '#/components/schemas/ProducerDetails'
+    UserReference:
+      description: 'ObjectId ou perfil populado; pode ser null se o utilizador referenciado já não existir.'
+      oneOf:
+        -
+          type: string
+          pattern: '^[a-fA-F0-9]{24}$'
+          nullable: true
+        -
+          $ref: '#/components/schemas/ActorPublic'
+    ProducerReference:
+      description: 'ObjectId ou produtor populado; pode ser null se o produtor já não existir.'
+      oneOf:
+        -
+          type: string
+          pattern: '^[a-fA-F0-9]{24}$'
+          nullable: true
+        -
+          $ref: '#/components/schemas/ProducerPublic'
+    RegisterInput:
+      type: object
+      required:
+        - nome
+        - email
+        - password
+      properties:
+        nome:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+        papel:
+          type: string
+          enum:
+            - comprador
+            - produtor
+          default: comprador
+        produtor:
+          allOf:
+            -
+              $ref: '#/components/schemas/ProducerDetails'
+          description: 'Dados da exploração. O servidor força validado=false e não permite registar administradores.'
+    LoginInput:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    RegisterResult:
+      type: object
+      required:
+        - id
+        - token
+        - utilizador
+      properties:
+        id:
+          $ref: '#/components/schemas/ObjectId'
+        token:
+          type: string
+          description: 'JWT com id, papel, nome e expiração; inicia a sessão após o registo.'
+        utilizador:
+          $ref: '#/components/schemas/UserPublic'
+    Session:
+      type: object
+      required:
+        - token
+        - utilizador
+      properties:
+        token:
+          type: string
+          description: 'JWT com id, papel, nome e expiração configurada pelo servidor (2h por omissão).'
+        utilizador:
+          $ref: '#/components/schemas/UserPublic'
+    ProductFields:
+      type: object
+      properties:
+        nome:
+          type: string
+          minLength: 1
+          maxLength: 150
+          example: 'Kiwi Hayward'
+        descricao:
+          type: string
+          maxLength: 1000
+        categoria:
+          $ref: '#/components/schemas/Categoria'
+        preco:
+          type: number
+          minimum: 0
+          example: 2.4
+        unidade:
+          type: string
+          default: kg
+        stock:
+          type: number
+          minimum: 0
+          default: 0
+          example: 300
+        biologico:
+          type: boolean
+          default: false
+        epocas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Epoca'
+    ProductInput:
+      allOf:
+        -
+          $ref: '#/components/schemas/ProductFields'
+        -
+          type: object
+          required:
+            - nome
+            - categoria
+            - preco
+    ProductUpdate:
+      allOf:
+        -
+          $ref: '#/components/schemas/ProductFields'
+      description: 'Atualização dos campos enviados; todos são opcionais. produtor e imagemUrl são ignorados.'
     Product:
       allOf:
-        - $ref: '#/components/schemas/ProductInput'
-        - type: object
+        -
+          $ref: '#/components/schemas/ProductInput'
+        -
+          type: object
+          required:
+            - _id
+            - produtor
           properties:
-            _id: { type: string }
-            produtor: { type: string, description: Id do produtor (ou objeto com populate) }
-            imagemUrl: { type: string }
-    # TODO: User, Order, Auction, Bid, Review, Erro
+            _id:
+              $ref: '#/components/schemas/ObjectId'
+            produtor:
+              $ref: '#/components/schemas/ProducerReference'
+            imagemUrl:
+              type: string
+              format: uri
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    ImageResult:
+      type: object
+      required:
+        - imagemUrl
+      properties:
+        imagemUrl:
+          type: string
+          format: uri
+    ProducerPage:
+      type: object
+      required:
+        - produtor
+        - produtos
+        - avaliacaoMedia
+      properties:
+        produtor:
+          $ref: '#/components/schemas/ProducerPublic'
+        produtos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        avaliacaoMedia:
+          type: number
+          minimum: 1
+          maximum: 5
+          nullable: true
+    Delivery:
+      type: object
+      properties:
+        tipo:
+          type: string
+          enum:
+            - levantamento
+            - entrega
+          default: levantamento
+        morada:
+          type: string
+          description: 'Obrigatória e não vazia para tipo=entrega.'
+    OrderLineInput:
+      type: object
+      required:
+        - produto
+        - quantidade
+      properties:
+        produto:
+          $ref: '#/components/schemas/ObjectId'
+        quantidade:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+    OrderInput:
+      type: object
+      required:
+        - linhas
+      properties:
+        linhas:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLineInput'
+          minItems: 1
+          maxItems: 100
+        entrega:
+          $ref: '#/components/schemas/Delivery'
+    OrderLine:
+      type: object
+      required:
+        - nome
+        - precoUnit
+        - quantidade
+      properties:
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        produto:
+          $ref: '#/components/schemas/ObjectId'
+        nome:
+          type: string
+        precoUnit:
+          type: number
+          minimum: 0
+        unidade:
+          type: string
+        quantidade:
+          type: integer
+          minimum: 1
+    Order:
+      type: object
+      required:
+        - _id
+        - comprador
+        - produtor
+        - linhas
+        - estado
+        - total
+      properties:
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        id:
+          $ref: '#/components/schemas/ObjectId'
+        comprador:
+          $ref: '#/components/schemas/UserReference'
+        produtor:
+          $ref: '#/components/schemas/UserReference'
+        linhas:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLine'
+          minItems: 1
+        estado:
+          $ref: '#/components/schemas/EstadoEncomenda'
+        entrega:
+          $ref: '#/components/schemas/Delivery'
+        origem:
+          type: string
+          enum:
+            - loja
+            - leilao
+        leilao:
+          $ref: '#/components/schemas/ObjectId'
+        total:
+          type: number
+          minimum: 0
+          readOnly: true
+          description: 'Virtual calculado a partir das linhas; não é gravado na base de dados.'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    OrderStateInput:
+      type: object
+      required:
+        - estado
+      properties:
+        estado:
+          $ref: '#/components/schemas/EstadoEncomenda'
+    CurrentBid:
+      type: object
+      properties:
+        valor:
+          type: number
+          minimum: 0
+        comprador:
+          $ref: '#/components/schemas/ObjectId'
+        nome:
+          type: string
+        em:
+          type: string
+          format: date-time
+    AuctionInput:
+      type: object
+      required:
+        - lote
+        - precoBase
+        - incremento
+      properties:
+        produto:
+          $ref: '#/components/schemas/ObjectId'
+        lote:
+          type: string
+          minLength: 1
+          maxLength: 150
+        descricao:
+          type: string
+          maxLength: 1000
+        quantidade:
+          type: string
+        precoBase:
+          type: number
+          minimum: 0
+        incremento:
+          type: number
+          minimum: 0.01
+        iniciaEm:
+          type: string
+          format: date-time
+          description: 'Se omitida, o leilão começa agora.'
+        terminaEm:
+          type: string
+          format: date-time
+          description: 'Tem de ser posterior a iniciaEm e ao momento atual.'
+        duracaoMinutos:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+          example: 30
+        duracao:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+          description: 'Alias de duracaoMinutos.'
+      anyOf:
+        -
+          required:
+            - terminaEm
+        -
+          required:
+            - duracaoMinutos
+        -
+          required:
+            - duracao
+    Auction:
+      type: object
+      required:
+        - _id
+        - produtor
+        - lote
+        - precoBase
+        - incremento
+        - iniciaEm
+        - terminaEm
+        - estado
+      properties:
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        produtor:
+          $ref: '#/components/schemas/ProducerReference'
+        produto:
+          $ref: '#/components/schemas/ObjectId'
+        lote:
+          type: string
+        descricao:
+          type: string
+        quantidade:
+          type: string
+        precoBase:
+          type: number
+          minimum: 0
+        incremento:
+          type: number
+          minimum: 0.01
+        licitacaoAtual:
+          $ref: '#/components/schemas/CurrentBid'
+        numLicitacoes:
+          type: integer
+          minimum: 0
+        iniciaEm:
+          type: string
+          format: date-time
+        terminaEm:
+          type: string
+          format: date-time
+        estado:
+          $ref: '#/components/schemas/EstadoLeilao'
+        encomenda:
+          $ref: '#/components/schemas/ObjectId'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Bid:
+      type: object
+      required:
+        - _id
+        - leilao
+        - comprador
+        - valor
+      properties:
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        leilao:
+          $ref: '#/components/schemas/ObjectId'
+        comprador:
+          $ref: '#/components/schemas/UserReference'
+        nome:
+          type: string
+        valor:
+          type: number
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AuctionDetail:
+      allOf:
+        -
+          $ref: '#/components/schemas/Auction'
+        -
+          type: object
+          required:
+            - licitacoes
+          properties:
+            licitacoes:
+              type: array
+              items:
+                $ref: '#/components/schemas/Bid'
+    ReviewInput:
+      type: object
+      required:
+        - encomenda
+        - classificacao
+      properties:
+        encomenda:
+          $ref: '#/components/schemas/ObjectId'
+        produto:
+          $ref: '#/components/schemas/ObjectId'
+        classificacao:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comentario:
+          type: string
+          maxLength: 1000
+    Review:
+      type: object
+      required:
+        - _id
+        - autor
+        - produtor
+        - encomenda
+        - classificacao
+      properties:
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        autor:
+          $ref: '#/components/schemas/UserReference'
+        produtor:
+          $ref: '#/components/schemas/UserReference'
+        produto:
+          $ref: '#/components/schemas/ObjectId'
+        encomenda:
+          $ref: '#/components/schemas/ObjectId'
+        classificacao:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comentario:
+          type: string
+        denuncias:
+          type: integer
+          minimum: 0
+        visivel:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ValidationInput:
+      type: object
+      required:
+        - aprovado
+      properties:
+        aprovado:
+          type: boolean
+    ModerationInput:
+      type: object
+      required:
+        - visivel
+      properties:
+        visivel:
+          type: boolean
+    Statistics:
+      type: object
+      required:
+        - utilizadores
+        - produtores
+        - encomendasHoje
+        - leiloesAtivos
+      properties:
+        utilizadores:
+          type: integer
+          minimum: 0
+        produtores:
+          type: integer
+          minimum: 0
+        encomendasHoje:
+          type: integer
+          minimum: 0
+        leiloesAtivos:
+          type: integer
+          minimum: 0
+    Health:
+      type: object
+      required:
+        - estado
+      properties:
+        estado:
+          type: string
+          enum:
+            - ok
