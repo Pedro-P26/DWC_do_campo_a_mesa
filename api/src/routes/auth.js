@@ -4,12 +4,22 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
-const porFazer = require('./_naoImplementado');
+const a = require('../utils/async');
+const erro = require('../utils/erro');
+const { objeto, escolher } = require('../utils/validar');
 
-// POST /api/auth/registo  -> 201 { id }
-// TODO: validar dados, fazer hash da password com bcrypt (custo 12) e criar o utilizador.
-//       Um produtor fica com produtor.validado = false até o administrador aprovar.
-router.post('/registo', porFazer('Registar utilizador (comprador ou produtor)'));
+router.post('/registo', a(async (req, res) => {
+  const corpo = objeto(req.body);
+  const papel = corpo.papel ?? 'comprador';
+  if (typeof corpo.nome !== 'string' || !corpo.nome.trim() || typeof corpo.email !== 'string' ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(corpo.email.trim()) || typeof corpo.password !== 'string' ||
+    corpo.password.length < 8 || corpo.password.length > 72 || !['comprador', 'produtor'].includes(papel)) throw erro(400, 'Dados de registo inválidos');
+  const produtor = papel === 'produtor' ? { ...escolher(objeto(corpo.produtor ?? {}),
+    ['nomeExploracao', 'descricao', 'localidade', 'localizacao']), validado: false } : undefined;
+  const utilizador = await User.create({ nome: corpo.nome, email: corpo.email.trim().toLowerCase(), papel, produtor,
+    passwordHash: await bcrypt.hash(corpo.password, 12) });
+  res.status(201).json({ id: utilizador._id, token: emitirToken(utilizador), utilizador: utilizador.publico() });
+}));
 
 // POST /api/auth/login  -> 200 { token, utilizador }
 router.post('/login', async (req, res, next) => {
@@ -24,25 +34,24 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ erro: 'Email ou password incorretos' });
     }
 
-    const token = jwt.sign(
-      { id: utilizador._id.toString(), papel: utilizador.papel },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '2h' }
-    );
+    const token = emitirToken(utilizador);
     res.json({
       token,
-      utilizador: {
-        _id: utilizador._id,
-        nome: utilizador.nome,
-        email: utilizador.email,
-        papel: utilizador.papel,
-        produtor: utilizador.produtor
-      }
+      utilizador: utilizador.publico()
     });
   } catch (err) { next(err); }
 });
 
 // GET /api/auth/eu  -> 200 dados do utilizador autenticado
-router.get('/eu', auth(), porFazer('Devolver o utilizador autenticado'));
+router.get('/eu', auth(), a(async (req, res) => {
+  const utilizador = await User.findById(req.user.id).select('nome email papel produtor');
+  if (!utilizador) throw erro(404, 'Utilizador não encontrado');
+  res.json(utilizador.publico());
+}));
 
 module.exports = router;
+
+function emitirToken(u) {
+  return jwt.sign({ id: u._id.toString(), papel: u.papel, nome: u.nome },
+    process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '2h' });
+}
