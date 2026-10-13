@@ -3,6 +3,7 @@
 @import 'bootstrap/scss/bootstrap';
 @import 'mixins';
 @import 'catalogo';
+@import 'navegacao';
 //@import 'leiloes';
 //@import 'paineis';
 
@@ -12,7 +13,7 @@ main { overflow-wrap: anywhere; }
 .barra-topo {
   background: #fff;
   border-bottom: 1px solid #e2e8df;
-  .navbar { min-height: 76px; padding-inline: .75rem; }
+  .navbar { min-height: 64px; padding-inline: .75rem; @include a-partir-de(lg) { min-height: 76px; } }
   .nav-link {
     font-size: .9rem;
     font-weight: 600;

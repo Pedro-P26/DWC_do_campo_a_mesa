@@ -1,21 +1,17 @@
 import { Link, NavLink } from 'react-router-dom';
-import { Leaf } from 'lucide-react';
+import { Leaf, UserRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCarrinho } from '../context/CarrinhoContext.jsx';
 
 export default function Navbar() {
-  const { utilizador, sair } = useAuth();
+  const { utilizador } = useAuth();
   const { linhas } = useCarrinho();
 
   return (
     <header className="barra-topo">
       <nav className="navbar navbar-expand-lg container-xl" aria-label="Navegação principal">
         <Link to="/" className="navbar-brand marca"><span className="marca__simbolo"><Leaf size={23} strokeWidth={1.7} aria-hidden="true" /></span>Do Campo à Mesa</Link>
-        <button className="navbar-toggler" type="button" data-bs-toggle="collapse"
-          data-bs-target="#menu" aria-controls="menu" aria-expanded="false" aria-label="Abrir menu">
-          <span className="navbar-toggler-icon" />
-        </button>
-        <div className="collapse navbar-collapse" id="menu">
+        <div className="navbar-collapse d-none d-lg-flex">
           <ul className="navbar-nav mx-lg-auto">
             <li className="nav-item"><NavLink to="/" end className="nav-link">Produtos</NavLink></li>
             <li className="nav-item"><NavLink to="/leiloes" className="nav-link">Leilões</NavLink></li>
@@ -33,14 +29,7 @@ export default function Navbar() {
             {utilizador?.papel === 'comprador' && (
               <Link to="/carrinho" className="btn btn-outline-secondary">Carrinho ({linhas.length})</Link>
             )}
-            {utilizador ? (
-              <button type="button" className="btn btn-outline-secondary" onClick={sair}>Sair</button>
-            ) : (
-              <>
-                <Link to="/login" className="btn btn-outline-secondary">Entrar</Link>
-                <Link to="/registo" className="btn btn-success">Registar</Link>
-              </>
-            )}
+            <NavLink to="/perfil" className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"><UserRound size={17} aria-hidden="true" /> Perfil</NavLink>
           </div>
         </div>
       </nav>

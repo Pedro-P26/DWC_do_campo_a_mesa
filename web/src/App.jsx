@@ -1,6 +1,7 @@
 // Passo 2: routing no cliente
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
+import BarraMobile from './components/BarraMobile.jsx';
 import Notificacoes from './components/Notificacoes.jsx';
 import RotaProtegida from './components/RotaProtegida.jsx';
 import Catalogo from './pages/Catalogo.jsx';
@@ -12,6 +13,7 @@ import Carrinho from './pages/Carrinho.jsx';
 import Encomendas from './pages/Encomendas.jsx';
 import Login from './pages/Login.jsx';
 import Registo from './pages/Registo.jsx';
+import Perfil from './pages/Perfil.jsx';
 import PainelProdutor from './pages/produtor/Painel.jsx';
 import NovoLeilao from './pages/produtor/NovoLeilao.jsx';
 import PainelAdmin from './pages/admin/Painel.jsx';
@@ -22,7 +24,7 @@ export default function App() {
     <>
       <Navbar />
       <Notificacoes />
-      <main className="container-xl py-4">
+      <main className="container-xl conteudo-app">
         <Routes>
           {/* Visitante */}
           <Route path="/" element={<Catalogo />} />
@@ -31,6 +33,7 @@ export default function App() {
           <Route path="/leiloes" element={<Leiloes />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registo" element={<Registo />} />
+          <Route path="/perfil" element={<Perfil />} />
 
           {/* Comprador */}
           <Route element={<RotaProtegida />}>
@@ -55,6 +58,7 @@ export default function App() {
           <Route path="*" element={<NaoEncontrado />} />
         </Routes>
       </main>
+      <BarraMobile />
     </>
   );
 }

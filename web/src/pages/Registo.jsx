@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 export default function Registo() {
   const { registar } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [dados, setDados] = useState({ nome: '', email: '', password: '', papel: 'comprador', nomeExploracao: '', localidade: '' });
   const [erro, setErro] = useState('');
   const [aRegistar, setARegistar] = useState(false);
@@ -15,11 +17,16 @@ export default function Registo() {
       const { nome, email, password, papel, nomeExploracao, localidade } = dados;
       const u = await registar({ nome, email, password, papel,
         ...(papel === 'produtor' ? { produtor: { nomeExploracao, localidade } } : {}) });
-      navigate(u.papel === 'produtor' ? '/produtor' : '/', { replace: true });
+      navigate(location.state?.de || (u.papel === 'produtor' ? '/produtor' : '/'), { replace: true });
     } catch (err) { setErro(err.message); } finally { setARegistar(false); }
   }
   return <form className="formulario-estreito" onSubmit={submeter}>
-    <h1>Registar</h1>
+    <div className="autenticacao__cabecalho">
+      <Link to="/perfil" state={location.state} className="autenticacao__voltar d-lg-none" aria-label="Voltar ao perfil" title="Voltar ao perfil">
+        <ArrowLeft size={22} aria-hidden="true" />
+      </Link>
+      <h1>Registar</h1>
+    </div>
     <fieldset disabled={aRegistar}>
       <label className="form-label" htmlFor="nome">Nome</label>
       <input id="nome" name="nome" autoComplete="name" className="form-control mb-3" required maxLength={100} value={dados.nome} onChange={campo} />

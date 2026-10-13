@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const INICIO = { comprador: '/', produtor: '/produtor', admin: '/admin' };
@@ -29,7 +30,12 @@ export default function Login() {
 
   return (
     <form className="formulario-estreito" onSubmit={submeter}>
-      <h1>Entrar</h1>
+      <div className="autenticacao__cabecalho">
+        <Link to="/perfil" state={location.state} className="autenticacao__voltar d-lg-none" aria-label="Voltar ao perfil" title="Voltar ao perfil">
+          <ArrowLeft size={22} aria-hidden="true" />
+        </Link>
+        <h1>Entrar</h1>
+      </div>
       <label htmlFor="email" className="form-label">Email</label>
       <input id="email" type="email" autoComplete="username" className="form-control mb-3" required disabled={aEntrar}
         value={dados.email} onChange={(e) => setDados({ ...dados, email: e.target.value })} />
