@@ -55,7 +55,7 @@ export default function PainelProdutor() {
       {baixos.length ? <ul className="mb-0">{baixos.map(p => <li key={p._id}>{p.nome}: {p.stock === 0 ? 'esgotado' : `${p.stock} ${p.unidade}`}</li>)}</ul> : 'Sem produtos com stock baixo.'}
     </div>}
     <h2>Catálogo</h2>
-    {!utilizador.produtor?.validado && <p role="alert" className="alert alert-warning">Aguarde a validação da conta para criar produtos.</p>}
+    {!utilizador.produtor?.validado && <p role="alert" className="alert alert-warning">{utilizador.produtor?.rejeitado ? 'O registo de produtor foi rejeitado pela administração.' : 'Aguarde a validação da conta para criar produtos.'}</p>}
     {(erro || produtos.erro || avaliacoes.erro) && <p role="alert" className="alert alert-danger">{erro || produtos.erro || avaliacoes.erro}</p>}
     {mensagem && <p role="status" className="alert alert-success">{mensagem}</p>}
     <button className="btn btn-success mb-3" disabled={ocupado || !utilizador.produtor?.validado} onClick={() => { setEdicao({}); setErro(''); setMensagem(''); }}>Novo produto</button>

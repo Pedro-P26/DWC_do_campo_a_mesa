@@ -749,7 +749,7 @@ paths:
       summary: 'Consultar estatísticas globais (admin)'
       responses:
         '200':
-          description: 'Contagens da aplicação.'
+          description: 'Indicadores globais. Hoje e os últimos sete dias.'
           content:
             application/json:
               schema:
@@ -771,7 +771,7 @@ paths:
       summary: 'Listar produtores por validar (admin)'
       responses:
         '200':
-          description: 'Produtores pendentes, incluindo email.'
+          description: 'Produtores ainda não aprovados nem rejeitados, incluindo email e createdAt.'
           content:
             application/json:
               schema:
@@ -796,6 +796,7 @@ paths:
       tags:
         - 'Administração'
       summary: 'Aprovar ou rejeitar produtor (admin)'
+      description: 'A aprovação marca validado=true e rejeitado=false; a rejeição marca validado=false e rejeitado=true e retira a conta da lista de pendentes.'
       responses:
         '200':
           description: 'Produtor atualizado, incluindo email.'
@@ -1015,6 +1016,9 @@ components:
               type: number
         validado:
           type: boolean
+        rejeitado:
+          type: boolean
+          description: 'Distingue uma rejeição administrativa de uma conta por validar. Contas antigas sem este campo são consideradas não rejeitadas.'
     ActorPublic:
       type: object
       required:
@@ -1574,23 +1578,43 @@ components:
       properties:
         visivel:
           type: boolean
+        resolverDenuncias:
+          type: boolean
+          default: false
+          description: 'Se true, limpa as denúncias existentes. Permite manter uma avaliação visível e retirar da lista de denunciadas.'
     Statistics:
       type: object
       required:
         - utilizadores
+        - utilizadoresSemana
         - produtores
+        - produtoresPendentes
         - encomendasHoje
+        - valorEncomendasHoje
         - leiloesAtivos
       properties:
         utilizadores:
           type: integer
           minimum: 0
+        utilizadoresSemana:
+          type: integer
+          minimum: 0
+          description: 'Registos nos últimos sete dias civis de Lisboa, incluindo hoje.'
         produtores:
           type: integer
           minimum: 0
+          description: 'Apenas produtores aprovados (validado=true).'
+        produtoresPendentes:
+          type: integer
+          minimum: 0
+          description: 'Produtores não aprovados nem rejeitados.'
         encomendasHoje:
           type: integer
           minimum: 0
+        valorEncomendasHoje:
+          type: number
+          minimum: 0
+          description: 'Soma dos totais das encomendas criadas hoje, em euros, arredondada a duas casas decimais.'
         leiloesAtivos:
           type: integer
           minimum: 0

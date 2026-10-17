@@ -61,7 +61,8 @@ async function main() {
       await pagina.getByLabel('Email', { exact: true }).fill(email);
       await pagina.getByLabel('Password', { exact: true }).fill('password123');
       await pagina.getByRole('button', { name: 'Entrar', exact: true }).click();
-      await expect(pagina.getByRole('button', { name: 'Sair', exact: true })).toBeVisible();
+      await expect(pagina).toHaveURL(`${webUrl}${{ comprador: '/', admin: '/admin', produtor: '/produtor' }[papel]}`);
+      await expect(pagina.locator('header').getByRole('link', { name: 'Perfil', exact: true })).toBeVisible();
       paginas[papel] = pagina;
     }
     const pagina = paginas.comprador;
@@ -160,16 +161,54 @@ async function main() {
     await verificar('Administração: indicadores reais e leilões ativos', async () => {
       await admin.goto(`${webUrl}/admin`);
       await expect(admin.locator('dl dd')).toHaveCount(4);
-      const valores = await admin.locator('dl dd').allTextContents();
-      assert.equal(Number(valores[0]), await User.countDocuments());
-      assert.equal(Number(valores[2]), await Order.countDocuments());
-      assert.equal(Number(valores[3]), await Auction.countDocuments({ estado: 'ativo' }));
+      const { hoje, amanha, inicioSemana } = require('../../src/utils/periodosEstatisticas')();
+      await expect(admin.getByTestId('utilizadores')).toHaveText(String(await User.countDocuments()));
+      await expect(admin.getByTestId('produtores')).toHaveText(String(await User.countDocuments({ papel: 'produtor', 'produtor.validado': true })));
+      await expect(admin.getByTestId('encomendasHoje')).toHaveText(String(await Order.countDocuments({ createdAt: { $gte: hoje, $lt: amanha } })));
+      await expect(admin.getByTestId('leiloesAtivos')).toHaveText(String(await Auction.countDocuments({ estado: 'ativo' })));
+      const novos = await User.countDocuments({ createdAt: { $gte: inicioSemana, $lt: amanha } });
+      await expect(admin.getByText(`+${novos} nos últimos 7 dias`, { exact: true })).toBeVisible();
+      const total = (await Order.find({ createdAt: { $gte: hoje, $lt: amanha } })).reduce((s, o) => s + o.total, 0);
+      await expect(admin.locator('dl').getByText(new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(total), { exact: true })).toBeVisible();
+      const secao = admin.getByRole('region', { name: 'Leilões ativos', exact: true });
+      await expect(secao.getByText(/Horta da Ribeira/)).toBeVisible();
+      await expect(secao.getByText(/0 licitações/)).toBeVisible();
       await expect(admin.getByRole('link', { name: 'Abrir sala do leilão' })).toBeVisible();
+      await admin.screenshot({ path: path.join(pasta, 'administracao-completa.png'), fullPage: true });
+      await admin.setViewportSize({ width: 320, height: 900 });
+      assert(await admin.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await admin.screenshot({ path: path.join(pasta, 'administracao-mobile.png'), fullPage: true });
+      await admin.setViewportSize({ width: 1280, height: 900 });
     });
     await verificar('Administração: aprovação de produtor', async () => {
       await admin.getByRole('button', { name: 'Aprovar produtor' }).click();
       await expect(admin.getByText('Não há produtores por validar.')).toBeVisible();
       assert.equal((await User.findById(pendente._id)).produtor.validado, true);
+      await expect(admin.getByText('0 por validar', { exact: true })).toBeVisible();
+    });
+    await verificar('Administração: rejeitar produtor persiste e retira dos pendentes', async () => {
+      const rejeitado = await User.create({ nome: 'Registo a rejeitar', email: 'rejeitar@exemplo.pt', papel: 'produtor',
+        passwordHash: comprador.passwordHash, produtor: { validado: false } });
+      await admin.getByRole('button', { name: 'Atualizar painel' }).click();
+      await admin.getByRole('button', { name: 'Rejeitar produtor Registo a rejeitar', exact: true }).click();
+      await expect(admin.getByText('Produtor rejeitado.', { exact: true })).toBeVisible();
+      await expect(admin.getByText('Não há produtores por validar.')).toBeVisible();
+      assert.equal((await User.findById(rejeitado._id)).produtor.rejeitado, true);
+      await admin.reload();
+      await expect(admin.getByText('Não há produtores por validar.')).toBeVisible();
+      const contexto = await browser.newContext({ viewport: { width: 375, height: 900 } });
+      try {
+        const perfil = await contexto.newPage();
+        perfil.on('pageerror', e => erros.push(e.message));
+        await perfil.goto(`${webUrl}/login`);
+        await perfil.getByLabel('Email', { exact: true }).fill(rejeitado.email);
+        await perfil.getByLabel('Password', { exact: true }).fill('password123');
+        await perfil.getByRole('button', { name: 'Entrar', exact: true }).click();
+        await expect(perfil).toHaveURL(`${webUrl}/produtor`);
+        await expect(perfil.getByText('O registo de produtor foi rejeitado pela administração.', { exact: true })).toBeVisible();
+        await perfil.goto(`${webUrl}/perfil`);
+        await expect(perfil.getByText('Registo rejeitado', { exact: true })).toBeVisible();
+      } finally { await contexto.close(); }
     });
     await verificar('Administração: ocultar e repor avaliação denunciada', async () => {
       await admin.getByRole('button', { name: 'Ocultar avaliação' }).click();
@@ -178,6 +217,13 @@ async function main() {
       await admin.getByRole('button', { name: 'Repor avaliação' }).click();
       await expect(admin.getByRole('button', { name: 'Ocultar avaliação' })).toBeEnabled();
       assert.equal((await Review.findById(review._id)).visivel, true);
+    });
+    await verificar('Administração: manter avaliação resolve denúncias', async () => {
+      await admin.getByRole('button', { name: 'Manter avaliação', exact: true }).click();
+      await expect(admin.getByText('Não há avaliações denunciadas.')).toBeVisible();
+      const mantida = await Review.findById(review._id);
+      assert.equal(mantida.visivel, true);
+      assert.equal(mantida.denuncias, 0);
     });
     const leilao = await Auction.findOne({ estado: 'ativo' });
     const produtor = await User.findOne({ email: 'horta@exemplo.pt' });
@@ -194,7 +240,7 @@ async function main() {
       assert.equal(await p.locator('.por-implementar').count(), 0);
     }
     for (const largura of [320, 375, 768, 1024, 1280]) {
-      await verificar(`Responsividade: 13 páginas a ${largura}px, menu e checkout`, async () => {
+      await verificar(`Responsividade: 13 páginas a ${largura}px, navegação e checkout`, async () => {
         for (const [p, rota] of rotas) {
           await p.bringToFront();
           await p.setViewportSize({ width: largura, height: 900 });
@@ -208,10 +254,9 @@ async function main() {
             const colunas = await p.locator('.grelha-produtos').evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length);
             assert.equal(colunas, largura < 768 ? 2 : largura < 1024 ? 3 : 4);
             if (largura < 1024) {
-              await p.getByRole('button', { name: 'Abrir menu' }).click();
-              await expect(p.locator('#menu')).toBeVisible();
+              await expect(p.getByRole('navigation', { name: 'Navegação móvel' })).toBeVisible();
               await semOverflow(p);
-            } else await expect(p.getByRole('button', { name: 'Abrir menu' })).toBeHidden();
+            } else await expect(p.getByRole('navigation', { name: 'Navegação móvel' })).toBeHidden();
           }
           if (rota === '/carrinho') {
             await p.getByLabel('Receber os produtos').selectOption('entrega');

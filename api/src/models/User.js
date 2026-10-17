@@ -13,7 +13,8 @@ const userSchema = new Schema({
     descricao: { type: String, maxlength: 1000 },
     localidade: String,
     localizacao: { lat: Number, lng: Number },
-    validado: { type: Boolean, default: false } // o administrador valida o registo
+    validado: { type: Boolean, default: false }, // o administrador valida o registo
+    rejeitado: { type: Boolean, default: false }
   }
 }, {
   timestamps: true,

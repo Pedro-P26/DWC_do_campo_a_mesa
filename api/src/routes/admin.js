@@ -8,22 +8,35 @@ const Review = require('../models/Review');
 const a = require('../utils/async');
 const erro = require('../utils/erro');
 const { id, objeto } = require('../utils/validar');
+const periodosEstatisticas = require('../utils/periodosEstatisticas');
+
+// $ne inclui contas antigas, anteriores à introdução do campo rejeitado.
+const pendentes = { papel: 'produtor', 'produtor.validado': false, 'produtor.rejeitado': { $ne: true } };
 
 router.use(auth('admin'));
 
-// GET /api/admin/estatisticas  -> 200 { utilizadores, produtores, encomendasHoje, leiloesAtivos }
+// GET /api/admin/estatisticas: dia e últimos sete dias
 router.get('/estatisticas', a(async (req, res) => {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const [utilizadores, produtores, encomendasHoje, leiloesAtivos] = await Promise.all([
-    User.countDocuments(), User.countDocuments({ papel: 'produtor' }),
-    Order.countDocuments({ createdAt: { $gte: hoje } }), Auction.countDocuments({ estado: 'ativo' })
+  const { hoje, amanha, inicioSemana } = periodosEstatisticas();
+  const [utilizadores, utilizadoresSemana, produtores, produtoresPendentes, encomendas, leiloesAtivos] = await Promise.all([
+    User.countDocuments(), User.countDocuments({ createdAt: { $gte: inicioSemana, $lt: amanha } }),
+    User.countDocuments({ papel: 'produtor', 'produtor.validado': true }), User.countDocuments(pendentes),
+    Order.aggregate([
+      { $match: { createdAt: { $gte: hoje, $lt: amanha } } },
+      { $group: { _id: null, quantidade: { $sum: 1 }, total: { $sum: { $round: [{ $sum: {
+        $map: { input: '$linhas', as: 'linha', in: { $multiply: ['$$linha.precoUnit', '$$linha.quantidade'] } }
+      } }, 2] } } } }
+    ]),
+    Auction.countDocuments({ estado: 'ativo' })
   ]);
-  res.json({ utilizadores, produtores, encomendasHoje, leiloesAtivos });
+  res.json({ utilizadores, utilizadoresSemana, produtores, produtoresPendentes,
+    encomendasHoje: encomendas[0]?.quantidade ?? 0,
+    valorEncomendasHoje: Math.round((encomendas[0]?.total ?? 0) * 100) / 100, leiloesAtivos });
 }));
 
 // GET /api/admin/produtores/pendentes  -> 200 [produtores por validar]
 router.get('/produtores/pendentes', a(async (req, res) => {
-  res.json(await User.find({ papel: 'produtor', 'produtor.validado': false }).select('nome email produtor').sort({ createdAt: 1 }));
+  res.json(await User.find(pendentes).select('nome email produtor createdAt').sort({ createdAt: 1 }));
 }));
 
 // PATCH /api/admin/produtores/:id/validacao  { aprovado: true|false }  -> 200
@@ -31,7 +44,7 @@ router.patch('/produtores/:id/validacao', a(async (req, res) => {
   const { aprovado } = objeto(req.body);
   if (typeof aprovado !== 'boolean') throw erro(400, 'Indique aprovado como booleano');
   const produtor = await User.findOneAndUpdate({ _id: id(req.params.id), papel: 'produtor' },
-    { $set: { 'produtor.validado': aprovado } }, { new: true, runValidators: true }).select('nome email produtor');
+    { $set: { 'produtor.validado': aprovado, 'produtor.rejeitado': !aprovado } }, { new: true, runValidators: true }).select('nome email produtor');
   if (!produtor) throw erro(404, 'Produtor não encontrado');
   if (aprovado) req.app.get('io')?.to(`user:${produtor._id}`).emit('conta-validada', { id: String(produtor._id) });
   res.json(produtor);
@@ -42,11 +55,13 @@ router.get('/reviews/denunciadas', a(async (req, res) => {
   res.json(await Review.find({ denuncias: { $gt: 0 } }).sort({ createdAt: -1 }).populate('autor produtor', 'nome'));
 }));
 
-// PATCH /api/admin/reviews/:id  { visivel: false }  -> 200
+// PATCH /api/admin/reviews/:id  { visivel: false, resolverDenuncias?: boolean }  -> 200
 router.patch('/reviews/:id', a(async (req, res) => {
-  const { visivel } = objeto(req.body);
+  const { visivel, resolverDenuncias } = objeto(req.body);
   if (typeof visivel !== 'boolean') throw erro(400, 'Indique visivel como booleano');
-  const avaliacao = await Review.findByIdAndUpdate(id(req.params.id), { $set: { visivel } }, { new: true, runValidators: true });
+  if (resolverDenuncias !== undefined && typeof resolverDenuncias !== 'boolean') throw erro(400, 'Indique resolverDenuncias como booleano');
+  const avaliacao = await Review.findByIdAndUpdate(id(req.params.id),
+    { $set: { visivel, ...(resolverDenuncias ? { denuncias: 0 } : {}) } }, { new: true, runValidators: true });
   if (!avaliacao) throw erro(404, 'Avaliação não encontrada');
   res.json(avaliacao);
 }));

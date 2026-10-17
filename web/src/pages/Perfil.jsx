@@ -27,6 +27,7 @@ export default function Perfil() {
 
   const produtor = utilizador.papel === 'produtor';
   const aprovado = utilizador.produtor?.validado;
+  const rejeitado = utilizador.produtor?.rejeitado;
   const painel = utilizador.papel === 'admin' ? '/admin' : '/produtor';
 
   return (
@@ -44,12 +45,12 @@ export default function Perfil() {
           <div><dt>Estado da conta</dt><dd>
             <span className={`perfil__estado${aprovado ? ' aprovado' : ''}`}>
               {aprovado ? <BadgeCheck size={17} aria-hidden="true" /> : <Clock3 size={17} aria-hidden="true" />}
-              {aprovado ? 'Aprovado' : 'A aguardar aprovação'}
+              {aprovado ? 'Aprovado' : rejeitado ? 'Registo rejeitado' : 'A aguardar aprovação'}
             </span>
           </dd></div>
         </>}
       </dl>
-      {produtor && !aprovado && <p className="alert alert-warning">A conta precisa de aprovação para criar produtos e leilões.</p>}
+      {produtor && !aprovado && <p className="alert alert-warning">{rejeitado ? 'O registo de produtor foi rejeitado pela administração. A criação de produtos e leilões está indisponível.' : 'A conta precisa de aprovação para criar produtos e leilões.'}</p>}
       <div className="perfil__acoes">
         {utilizador.papel === 'comprador' ? (
           <Link to="/encomendas" className="btn btn-outline-success"><ShoppingBag size={18} aria-hidden="true" /> As minhas encomendas</Link>
