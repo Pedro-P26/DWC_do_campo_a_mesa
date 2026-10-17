@@ -31,11 +31,14 @@ do-campo-a-mesa/
 │       ├── pages/            Catalogo, Produtor, Leiloes, SalaLeilao, Carrinho, Encomendas, …
 │       ├── styles/           _variables, _mixins (Mobile First), _catalogo, main.scss
 │       └── data/             produtos.json: dados simulados (semana 2)
+├── admin/                    PHP · Laravel · Blade (base do backoffice)
 └── docs/
     └── relatorio.md          estrutura sugerida para o relatório
 ```
 
 ## Pré-requisitos
+
+O backoffice PHP de administração tem uma base Laravel independente em [`admin/`](admin/README.md). Para instalar e executar: `cd admin`, `composer run setup` e `composer run dev` (PHP 8.3+ e Composer 2). Abre em <http://127.0.0.1:8000>; a autenticação e a integração de dados ficam para uma fase posterior.
 
 - Node.js 20 ou superior
 - MongoDB local, ou um cluster gratuito no [MongoDB Atlas](https://www.mongodb.com/atlas)
