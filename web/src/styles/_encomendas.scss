@@ -1,0 +1,77 @@
+.encomenda {
+  padding: 1rem;
+  border-color: #dce4d6;
+  background: #fff;
+  &__cabecalho { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: .75rem; margin-bottom: .85rem; }
+  &__titulo { margin-bottom: .25rem; font-size: 1.05rem; }
+  &__pessoa { margin-bottom: 0; color: $texto-secundario; font-size: .875rem; }
+  &__estado {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .35rem .65rem; border-radius: 2rem; font-size: .75rem; font-weight: 600;
+    background: #edf3eb; color: $verde;
+    &::before { content: ''; width: .4rem; height: .4rem; border-radius: 50%; background: currentColor; }
+    &--pendente { color: $terracota; background: rgba($terracota, .08); }
+    &--entregue { color: #fff; background: $verde; }
+  }
+  &__produtos { padding-left: 1.15rem; margin-bottom: .75rem; font-size: .9rem; }
+  &__total {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: .35rem;
+    margin-bottom: 1.5rem; font-size: .9rem;
+    span { margin-left: .5rem; color: $texto-secundario; font-size: .8rem; }
+  }
+  &__rodape { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e6ebe2; }
+  &__orientacao { flex: 1 1 16rem; p { margin: .25rem 0 0; font-size: .85rem; color: $texto-secundario; } }
+  &__proximo { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; font-weight: 600; color: $verde; }
+  &__avancar { display: inline-flex; align-items: center; justify-content: center; gap: .6rem; min-height: 44px; padding: .65rem 1rem; font-size: .875rem; }
+  &__avaliacao { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e6ebe2; }
+  &__a-atualizar { animation: encomenda-rodar 1s linear infinite; }
+  @include a-partir-de(md) { padding: 1.25rem; }
+}
+
+.estado-encomenda {
+  display: grid; list-style: none; padding: 0; margin: 0;
+  li {
+    position: relative; display: grid; grid-template-columns: 2.25rem minmax(0, 1fr);
+    column-gap: .75rem; align-content: start; min-height: 4.5rem; color: $texto-secundario;
+    &:last-child { min-height: 2.25rem; }
+    &:not(:last-child)::after { content: ''; position: absolute; left: calc(1.125rem - 1px); top: 2.5rem; bottom: .25rem; width: 2px; background: #e1e7db; }
+  }
+  &__marcador {
+    grid-column: 1; grid-row: 1 / 3; position: relative; z-index: 1;
+    display: grid; place-items: center; width: 2.25rem; height: 2.25rem;
+    border: 1px solid #dce4d6; border-radius: 50%; background: #f5f7f2;
+    color: $texto-secundario; font-size: .85rem; font-weight: 600;
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+  }
+  &__titulo { grid-column: 2; font-size: .85rem; font-weight: 500; }
+  &__descricao { grid-column: 2; font-size: .75rem; color: $texto-secundario; }
+  .feito {
+    .estado-encomenda__marcador { background: $verde; border-color: $verde; color: #fff; }
+    .estado-encomenda__titulo { color: $verde; }
+    &:not(:last-child)::after { background: $verde; }
+  }
+  .atual {
+    .estado-encomenda__marcador { background: rgba($terracota, .08); border-color: $terracota; color: $terracota; box-shadow: 0 0 0 4px rgba($terracota, .08); }
+    .estado-encomenda__titulo { color: $terracota; font-weight: 700; }
+  }
+  &--concluida .atual {
+    .estado-encomenda__marcador { background: $verde; border-color: $verde; color: #fff; box-shadow: none; }
+    .estado-encomenda__titulo { color: $verde; }
+  }
+  @include a-partir-de(md) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    li {
+      display: flex; flex-direction: column; align-items: center; text-align: center; min-height: 0;
+      &:last-child { min-height: 0; }
+      &:not(:last-child)::after { top: calc(1.125rem - 1px); bottom: auto; left: calc(50% + 1.4rem); width: calc(100% - 2.8rem); height: 2px; }
+    }
+    &__titulo { margin-top: .65rem; }
+    &__descricao { margin-top: .15rem; }
+  }
+}
+
+@keyframes encomenda-rodar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .estado-encomenda__marcador { transition: none; }
+  .encomenda__a-atualizar { animation: none; }
+}

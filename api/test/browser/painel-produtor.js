@@ -79,8 +79,9 @@ module.exports = async ({ spa, context, verificar, apiUrl, webUrl, errosBrowser 
     const o = await Order.findOne({ produtor: dono._id, estado: 'pendente' }); expect(o).toBeTruthy();
     const anteriores = Number(await spa.getByTestId('por-tratar').textContent());
     const c = spa.getByTestId(`encomenda-${o.id}`);
+    const acoes = { confirmada: 'Confirmar encomenda', pronta: 'Marcar como pronta', entregue: 'Confirmar entrega' };
     for (const estado of ['confirmada', 'pronta', 'entregue']) {
-      await c.getByRole('button', { name: `Marcar como ${estado}`, exact: true }).click();
+      await c.getByRole('button', { name: acoes[estado], exact: true }).click();
       await expect(c.getByLabel(`Estado: ${estado}`, { exact: true })).toBeVisible();
     }
     await expect(spa.getByTestId('por-tratar')).toHaveText(String(anteriores - 1));
