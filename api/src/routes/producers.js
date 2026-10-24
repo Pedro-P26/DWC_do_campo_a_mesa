@@ -5,7 +5,29 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
 const a = require('../utils/async');
-const { escaparRegex } = require('../utils/validar');
+const { escaparRegex, objeto, texto } = require('../utils/validar');
+const auth = require('../middleware/auth');
+const erro = require('../utils/erro');
+
+router.patch('/me', auth('produtor'), a(async (req, res) => {
+  const corpo = objeto(req.body);
+  const campos = {};
+  for (const [campo, limite] of Object.entries({ nomeExploracao: 150, descricao: 1000, localidade: 150 })) {
+    if (corpo[campo] === undefined) continue;
+    const valor = texto(corpo[campo]).trim();
+    if (valor.length > limite || (campo !== 'descricao' && !valor)) throw erro(400, 'Dados da página pública inválidos');
+    campos[`produtor.${campo}`] = valor;
+  }
+  if (corpo.localizacao !== undefined) {
+    const p = corpo.localizacao;
+    if (p !== null && (!p || typeof p !== 'object' || Array.isArray(p) || !Number.isFinite(p.lat) || !Number.isFinite(p.lng) || Math.abs(p.lat) > 90 || Math.abs(p.lng) > 180)) throw erro(400, 'Coordenadas inválidas');
+    campos['produtor.localizacao'] = p === null ? null : { lat: p.lat, lng: p.lng };
+  }
+  if (!Object.keys(campos).length) throw erro(400, 'Indique os dados a atualizar');
+  const conta = await User.findOneAndUpdate({ _id: req.user.id, papel: 'produtor' }, { $set: campos }, { new: true, runValidators: true });
+  if (!conta) throw erro(404, 'Produtor não encontrado');
+  res.json(conta.publico());
+}));
 
 // GET /api/producers?localidade=  -> 200 [produtores validados]
 router.get('/', a(async (req, res) => {

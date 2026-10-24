@@ -9,10 +9,10 @@ const userSchema = new Schema({
 
   // Dados específicos do produtor (página pública)
   produtor: {
-    nomeExploracao: String,
+    nomeExploracao: { type: String, trim: true, maxlength: 150 },
     descricao: { type: String, maxlength: 1000 },
-    localidade: String,
-    localizacao: { lat: Number, lng: Number },
+    localidade: { type: String, trim: true, maxlength: 150 },
+    localizacao: { lat: { type: Number, min: -90, max: 90 }, lng: { type: Number, min: -180, max: 180 } },
     validado: { type: Boolean, default: false }, // o administrador valida o registo
     rejeitado: { type: Boolean, default: false }
   }

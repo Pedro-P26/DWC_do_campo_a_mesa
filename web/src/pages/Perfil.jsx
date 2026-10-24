@@ -52,6 +52,7 @@ export default function Perfil() {
       </dl>
       {produtor && !aprovado && <p className="alert alert-warning">{rejeitado ? 'O registo de produtor foi rejeitado pela administração. A criação de produtos e leilões está indisponível.' : 'A conta precisa de aprovação para criar produtos e leilões.'}</p>}
       <div className="perfil__acoes">
+        {produtor && <Link to="/produtor/perfil" className="btn btn-outline-success">Editar página pública</Link>}
         {utilizador.papel === 'comprador' ? (
           <Link to="/encomendas" className="btn btn-outline-success"><ShoppingBag size={18} aria-hidden="true" /> As minhas encomendas</Link>
         ) : (

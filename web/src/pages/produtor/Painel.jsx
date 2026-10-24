@@ -45,6 +45,7 @@ export default function PainelProdutor() {
   return <>
     <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3"><h1>Painel do produtor</h1><Link to="/produtor/leiloes/novo" className="btn btn-success">Criar leilão</Link></div>
     <button className="btn btn-outline-success mb-3" onClick={atualizarTudo} disabled={ocupado || produtos.aCarregar || encomendas.aCarregar || avaliacoes.aCarregar}>Atualizar painel</button>
+    <Link to="/produtor/perfil" className="btn btn-outline-success mb-3 ms-2">Editar página pública</Link>
     <div className="row g-3 mb-4">
       <div className="col-md-4"><div className="card p-3"><h2 className="h5">Vendas do mês</h2><p className="h3" data-testid="vendas-mes">{encomendas.erro ? 'Indisponível' : vendas === undefined ? 'A carregar…' : euro(vendas)}</p><small>Encomendas confirmadas, prontas ou entregues criadas no mês atual.</small></div></div>
       <div className="col-md-4"><div className="card p-3"><h2 className="h5">Encomendas por tratar</h2><p className="h3" data-testid="por-tratar">{encomendas.erro ? 'Indisponível' : porTratar ?? 'A carregar…'}</p><small>Encomendas que ainda não foram entregues.</small></div></div>

@@ -11,6 +11,7 @@ import produtosSimulados from '../data/produtos.json';
 export default function Produtor() {
   const { id } = useParams();
   const { dados, erro, aCarregar, recarregar } = useApi(USAR_DADOS_SIMULADOS ? null : `/producers/${encodeURIComponent(id)}`);
+  const avaliacoes = useApi(USAR_DADOS_SIMULADOS ? null : `/reviews?produtor=${encodeURIComponent(id)}`);
   const { utilizador } = useAuth();
   const carrinho = useCarrinho();
   const simulados = USAR_DADOS_SIMULADOS ? produtosSimulados.filter((p) => p.produtor._id === id) : [];
@@ -54,6 +55,13 @@ export default function Produtor() {
         ))}
       </section>
       {produtos.length === 0 && <p className="texto-secundario">Sem produtos disponíveis.</p>}
+      <section aria-labelledby="avaliacoes-produtor" className="mt-4">
+        <h2 id="avaliacoes-produtor">Avaliações do produtor</h2>
+        {avaliacoes.aCarregar && <p role="status">A carregar avaliações…</p>}
+        {avaliacoes.erro && <p role="alert">{avaliacoes.erro} <button className="btn btn-outline-success" onClick={avaliacoes.recarregar}>Tentar novamente</button></p>}
+        {!avaliacoes.aCarregar && !avaliacoes.erro && !avaliacoes.dados?.length && <p>Ainda não há avaliações deste produtor.</p>}
+        {avaliacoes.dados?.map(r => <article key={r._id} className="card p-3 mb-3"><h3 className="h5">{r.autor?.nome || 'Comprador'} · {r.classificacao}/5</h3>{r.comentario && <p className="mb-0">{r.comentario}</p>}</article>)}
+      </section>
     </>
   );
 }

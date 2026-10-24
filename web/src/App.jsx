@@ -16,6 +16,7 @@ import Registo from './pages/Registo.jsx';
 import Perfil from './pages/Perfil.jsx';
 import PainelProdutor from './pages/produtor/Painel.jsx';
 import NovoLeilao from './pages/produtor/NovoLeilao.jsx';
+import EditarPagina from './pages/produtor/EditarPagina.jsx';
 import PainelAdmin from './pages/admin/Painel.jsx';
 import NaoEncontrado from './pages/NaoEncontrado.jsx';
 
@@ -47,6 +48,7 @@ export default function App() {
           {/* Produtor */}
           <Route element={<RotaProtegida papeis={['produtor']} />}>
             <Route path="/produtor" element={<PainelProdutor />} />
+            <Route path="/produtor/perfil" element={<EditarPagina />} />
             <Route path="/produtor/leiloes/novo" element={<NovoLeilao />} />
           </Route>
 
