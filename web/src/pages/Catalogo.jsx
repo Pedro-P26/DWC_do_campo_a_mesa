@@ -3,12 +3,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Leaf, MapPin, Search, SlidersHorizontal, Sprout, X } from 'lucide-react';
 import CartaoProduto from '../components/CartaoProduto.jsx';
+import LeilaoDestaque from '../components/LeilaoDestaque.jsx';
+import { useApi } from '../hooks/useApi.js';
 import { useCarrinho } from '../context/CarrinhoContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api, USAR_DADOS_SIMULADOS } from '../api/client.js';
 import produtosSimulados from '../data/produtos.json';
 
 const CATEGORIAS = ['Todos', 'Hortícolas', 'Fruta', 'Mel', 'Vinho', 'Queijo', 'Padaria', 'Outros'];
+const FILTRO_INICIAL = { q: '', categoria: 'Todos', epoca: 'Todas', modoBio: 'Todos', precoMax: '', produtor: '', localidade: '' };
 const EPOCAS = ['Todas', 'Primavera', 'Verão', 'Outono', 'Inverno'];
 const MODOS_BIO = [
   { valor: 'Todos', rotulo: 'Todos' },
@@ -25,7 +28,9 @@ const ORDENACOES = [
 
 export default function Catalogo() {
   const [produtos, setProdutos] = useState([]);
-  const [filtro, setFiltro] = useState({ q: '', categoria: 'Todos', epoca: 'Todas', modoBio: 'Todos', precoMax: '' });
+  const [filtro, setFiltro] = useState(FILTRO_INICIAL);
+  const consultaProdutores = useApi(USAR_DADOS_SIMULADOS ? null : '/producers');
+  const produtores = USAR_DADOS_SIMULADOS ? [...new Map(produtosSimulados.map(p => [p.produtor._id, p.produtor])).values()] : consultaProdutores.dados || [];
   const [ordenacao, setOrdenacao] = useState('original');
   const [erro, setErro] = useState('');
   const [aCarregar, setACarregar] = useState(!USAR_DADOS_SIMULADOS);
@@ -46,7 +51,9 @@ export default function Catalogo() {
         (filtro.modoBio === 'Todos' ||
           (filtro.modoBio === 'Biologico' ? p.biologico : !p.biologico)) &&
         (filtro.precoMax === '' || p.preco <= Number(filtro.precoMax)) &&
-        p.nome.toLowerCase().includes(filtro.q.toLowerCase())));
+        (!filtro.produtor || p.produtor._id === filtro.produtor) &&
+        (p.produtor.produtor?.localidade || '').toLowerCase().includes(filtro.localidade.trim().toLowerCase()) &&
+        [p.nome, ...(p.ingredientes || []), p.produtor.nome, p.produtor.produtor?.nomeExploracao || ''].some(v => v.toLowerCase().includes(filtro.q.trim().toLowerCase()))));
       setErro('');
       setACarregar(false);
       return;
@@ -55,6 +62,8 @@ export default function Catalogo() {
       q: filtro.q,
       categoria: filtro.categoria,
       epoca: filtro.epoca,
+      ...(filtro.produtor ? { produtor: filtro.produtor } : {}),
+      ...(filtro.localidade.trim() ? { localidade: filtro.localidade.trim() } : {}),
       ...(filtro.precoMax === '' ? {} : { precoMax: filtro.precoMax }),
       ...(filtro.modoBio === 'Todos' ? {} : { bio: String(filtro.modoBio === 'Biologico') })
     };
@@ -94,7 +103,7 @@ export default function Catalogo() {
     setFiltro((f) => ({ ...f, [campo]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
   const temFiltros = filtro.q !== '' || filtro.categoria !== 'Todos' ||
-    filtro.epoca !== 'Todas' || filtro.modoBio !== 'Todos' || filtro.precoMax !== '' || ordenacao !== 'original';
+    filtro.epoca !== 'Todas' || filtro.modoBio !== 'Todos' || filtro.precoMax !== '' || filtro.produtor !== '' || filtro.localidade !== '' || ordenacao !== 'original';
 
   return (
     <>
@@ -111,6 +120,7 @@ export default function Catalogo() {
         </div>
       </section>
 
+      <LeilaoDestaque />
       <div className="catalogo-cabecalho">
         <h2>O nosso mercado</h2>
         <span><SlidersHorizontal size={15} aria-hidden="true" /> Encontre o seu próximo favorito</span>
@@ -120,9 +130,21 @@ export default function Catalogo() {
           <label className="filtros__legenda" htmlFor="pesquisa">Pesquisar produtos</label>
           <div className="filtros__campo-pesquisa">
             <Search size={18} aria-hidden="true" />
-            <input id="pesquisa" type="search" className="form-control" placeholder="Kiwi, mel, Alvarinho…"
+            <input id="pesquisa" type="search" className="form-control" placeholder="Nome, ingrediente ou produtor…"
               value={filtro.q} onChange={mudar('q')} />
           </div>
+        </div>
+        <div className="filtros__grupo">
+          <label className="filtros__legenda" htmlFor="filtro-produtor">Produtor</label>
+          <select id="filtro-produtor" className="form-select" value={filtro.produtor} onChange={mudar('produtor')}>
+            <option value="">Todos os produtores</option>
+            {produtores.map(p => <option key={p._id} value={p._id}>{p.produtor?.nomeExploracao || p.nome}</option>)}
+          </select>
+          {consultaProdutores.erro && <span role="alert">Não foi possível carregar os produtores. <button type="button" className="btn btn-link p-0" onClick={consultaProdutores.recarregar}>Tentar novamente</button></span>}
+        </div>
+        <div className="filtros__grupo">
+          <label className="filtros__legenda" htmlFor="filtro-localidade">Localidade</label>
+          <input id="filtro-localidade" className="form-control" type="search" maxLength={150} placeholder="Todas as localidades" value={filtro.localidade} onChange={mudar('localidade')} />
         </div>
         <div className="filtros__grupo">
           <label className="filtros__legenda" htmlFor="categoria">Categoria</label>
@@ -167,7 +189,7 @@ export default function Catalogo() {
         <span className="texto-secundario" role="status"><strong>{produtos.length}</strong> {produtos.length === 1 ? 'produto encontrado' : 'produtos encontrados'}</span>
         <button type="button" className="btn btn-link filtros__limpar" disabled={!temFiltros}
           onClick={() => {
-            setFiltro({ q: '', categoria: 'Todos', epoca: 'Todas', modoBio: 'Todos', precoMax: '' });
+            setFiltro(FILTRO_INICIAL);
             setOrdenacao('original');
           }}>
           <X size={14} aria-hidden="true" /> Limpar filtros

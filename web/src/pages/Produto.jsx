@@ -43,6 +43,7 @@ function DetalhesProduto({ id }) {
         <h1 id="titulo-produto">{produto.nome}</h1>
         <p className="fs-3 fw-bold">{produto.preco.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })} / {produto.unidade}</p>
         <p className="produto-detalhe__descricao">{produto.descricao || 'Este produto ainda não tem descrição.'}</p>
+        {!!produto.ingredientes?.length && <p>Ingredientes: {produto.ingredientes.join(', ')}</p>}
         <dl>
           <dt>Categoria</dt><dd>{produto.categoria}</dd>
           <dt>Modo de produção</dt><dd>{produto.biologico ? 'Biológico' : 'Convencional'}</dd>
