@@ -33,7 +33,8 @@ export default function ListaEncomendas({ produtor = false, fonte }) {
   }
   async function avaliar(e, o) {
     e.preventDefault(); const form = e.currentTarget; const valores = new FormData(form); setOcupada(o._id); setFalha('');
-    try { await api('/reviews', { metodo: 'POST', token, corpo: { encomenda: o._id, classificacao: Number(valores.get('nota')), comentario: valores.get('comentario') } }); form.reset(); setFalha('Avaliação enviada.'); }
+    try { await api('/reviews', { metodo: 'POST', token, corpo: { encomenda: o._id, classificacao: Number(valores.get('nota')), comentario: valores.get('comentario'),
+      ...(valores.get('produto') ? { produto: valores.get('produto') } : {}) } }); form.reset(); setFalha('Avaliação enviada.'); }
     catch (err) { setFalha(err.message); } finally { setOcupada(null); }
   }
   return <>
@@ -63,6 +64,11 @@ export default function ListaEncomendas({ produtor = false, fonte }) {
         </button>}
       </div>}
       {!produtor && o.estado === 'entregue' && <form className="encomenda__avaliacao" onSubmit={e => avaliar(e, o)}>
+        <label htmlFor={`avaliar-${o._id}`}>O que pretende avaliar?</label>
+        <select id={`avaliar-${o._id}`} name="produto" className="form-select mb-2">
+          <option value="">Produtor: {o.produtor?.nome || 'Produtor da encomenda'}</option>
+          {[...new Map(o.linhas.filter(l => l.produto).map(l => [l.produto, l])).values()].map(l => <option key={l.produto} value={l.produto}>Produto: {l.nome}</option>)}
+        </select>
         <label htmlFor={`nota-${o._id}`}>Classificação</label><select id={`nota-${o._id}`} className="form-select mb-2" name="nota">{[5, 4, 3, 2, 1].map(n => <option key={n}>{n}</option>)}</select>
         <label htmlFor={`comentario-${o._id}`}>Comentário</label><textarea id={`comentario-${o._id}`} name="comentario" maxLength={1000} className="form-control mb-2" />
         <button className="btn btn-outline-success" disabled={ocupada === o._id}>Enviar avaliação</button>
