@@ -11,13 +11,12 @@
     "seed:testes": "node src/seed/testes.js",
     "test": "node --test test/*.test.js",
     "docs:validate": "node scripts/validar-openapi.js",
-    "test:browser:frontend": "node test/browser/frontend.js --keep-open",
+    "test:browser:frontend": "node test/browser/frontend.js --headless",
     "test:browser:carrinho-desktop": "node test/browser/carrinho-desktop.js",
-    "test:browser": "node test/browser/passo5.js",
-    "test:browser:visible": "node test/browser/passo5.js --keep-open",
-    "test:browser:passo6": "node test/browser/passo5.js --passo6 --keep-open",
-    "test:browser:passo7": "node test/browser/passo5.js --passo7 --keep-open",
-    "test:browser:painel-produtor": "node test/browser/passo5.js --painel-produtor --keep-open"
+    "test:browser": "node test/browser/frontend.js --headless",
+    "test:browser:visible": "node test/browser/frontend.js --keep-open",
+    "test:browser:painel-produtor": "node test/browser/frontend.js --headless --painel-produtor",
+    "test:concorrencia": "node --test test/funcionalidades.test.js"
   },
   "engines": {
     "node": ">=20.19"

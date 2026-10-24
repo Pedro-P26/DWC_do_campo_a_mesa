@@ -16,12 +16,13 @@ const Auction = require('../../src/models/Auction');
 
 async function main() {
   process.env.JWT_SECRET = 'teste-frontend-local-base-descartavel';
+  process.env.STORAGE_CONN = ''; // Uploads do teste ficam locais, mesmo com variáveis herdadas.
   process.env.JWT_EXPIRES_IN = '2h';
   const resultados = [];
   const erros = [];
   const pasta = path.resolve(__dirname, '../../test-results/frontend');
   await fs.mkdir(pasta, { recursive: true });
-  let mongo, http, io, vite, browser, pararCiclo;
+  let mongo, http, io, vite, browser, pararCiclo, pararValidacao;
   async function verificar(nome, teste) {
     await teste();
     resultados.push(nome);
@@ -42,6 +43,7 @@ async function main() {
     io = new Server(http, { cors: { origin: (origin, cb) => cb(null, !origin || origin === process.env.CLIENT_URL) } });
     app.set('io', io);
     require('../../src/sockets')(io);
+    pararValidacao = await require('../../src/services/validacaoProdutores')(io);
     pararCiclo = require('../../src/services/cicloLeiloes')(io);
     const raizWeb = path.resolve(__dirname, '../../../web');
     const { createServer } = await import(pathToFileURL(path.join(raizWeb, 'node_modules/vite/dist/node/index.js')).href);
@@ -51,10 +53,11 @@ async function main() {
     const webUrl = vite.resolvedUrls.local[0].replace(/\/$/, '');
     process.env.CLIENT_URL = webUrl;
     console.log(`Browser: ${webUrl}; API temporária: ${apiUrl}`);
-    browser = await chromium.launch({ headless: process.argv.includes('--headless'), slowMo: 80 });
+    browser = await chromium.launch({ headless: process.argv.includes('--headless'), slowMo: process.argv.includes('--headless') ? 0 : 80 });
     const paginas = {};
     for (const [papel, email] of Object.entries({ comprador: 'tasca@exemplo.pt', admin: 'admin@exemplo.pt', produtor: 'horta@exemplo.pt' })) {
       const contexto = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+      await contexto.route('https://www.openstreetmap.org/**', route => route.fulfill({ contentType: 'text/html', body: '<p>Mapa externo</p>' }));
       const pagina = await contexto.newPage();
       pagina.on('pageerror', e => erros.push(e.message));
       await pagina.goto(`${webUrl}/login`);
@@ -66,6 +69,13 @@ async function main() {
       paginas[papel] = pagina;
     }
     const pagina = paginas.comprador;
+    const testarProdutor = () => require('./painel-produtor')({ spa: paginas.produtor, context: paginas.produtor.context(), verificar, apiUrl, webUrl, errosBrowser: erros });
+    if (process.argv.includes('--painel-produtor')) {
+      await testarProdutor();
+      assert.deepEqual(erros, []);
+      await fs.writeFile(path.join(pasta, 'painel-produtor.json'), JSON.stringify({ sucesso: true, testes: resultados, erros }, null, 2));
+      return;
+    }
     await verificar('Detalhes do produto: acesso público, avaliações e adicionar ao carrinho', async () => {
       const contexto = await browser.newContext({ viewport: { width: 375, height: 900 } });
       const publico = await contexto.newPage();
@@ -225,6 +235,7 @@ async function main() {
       assert.equal(mantida.visivel, true);
       assert.equal(mantida.denuncias, 0);
     });
+    await require('./prioridades')({ browser, paginas, verificar, apiUrl, webUrl, erros, pasta });
     const leilao = await Auction.findOne({ estado: 'ativo' });
     const produtor = await User.findOne({ email: 'horta@exemplo.pt' });
     const kiwi = await Product.findOne({ nome: 'Kiwi Hayward' });
@@ -234,13 +245,14 @@ async function main() {
       [visitante, `/produtores/${produtor._id}`], [visitante, '/pagina-inexistente'],
       [pagina, '/carrinho'], [pagina, '/encomendas'], [pagina, `/leiloes/${leilao._id}`],
       [paginas.produtor, '/produtor'], [paginas.produtor, '/produtor/leiloes/novo'], [admin, '/admin'],
-      [visitante, `/produtos/${kiwi._id}`]];
+      [visitante, `/produtos/${kiwi._id}`], [paginas.produtor, '/produtor/perfil']];
+    await visitante.route('https://www.openstreetmap.org/**', route => route.fulfill({ contentType: 'text/html', body: '<p>Mapa externo</p>' }));
     async function semOverflow(p) {
       await expect.poll(() => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       assert.equal(await p.locator('.por-implementar').count(), 0);
     }
     for (const largura of [320, 375, 768, 1024, 1280]) {
-      await verificar(`Responsividade: 13 páginas a ${largura}px, navegação e checkout`, async () => {
+      await verificar(`Responsividade: 14 páginas a ${largura}px, navegação e checkout`, async () => {
         for (const [p, rota] of rotas) {
           await p.bringToFront();
           await p.setViewportSize({ width: largura, height: 900 });
@@ -266,6 +278,7 @@ async function main() {
         }
       });
     }
+    await testarProdutor();
     await verificar('Sem erros JavaScript no browser', async () => assert.deepEqual(erros, []));
     await admin.setViewportSize({ width: 1280, height: 900 });
     await admin.goto(`${webUrl}/admin`);
@@ -274,7 +287,7 @@ async function main() {
     await pagina.goto(`${webUrl}/carrinho`);
     await pagina.getByLabel('Receber os produtos').selectOption('entrega');
     await pagina.screenshot({ path: path.join(pasta, 'checkout-mobile.png'), fullPage: true });
-    await fs.writeFile(path.join(pasta, 'resultado.json'), JSON.stringify({ sucesso: true, testes: resultados, paginas: 65, larguras: [320, 375, 768, 1024, 1280], erros }, null, 2));
+    await fs.writeFile(path.join(pasta, 'resultado.json'), JSON.stringify({ sucesso: true, testes: resultados, paginas: 70, larguras: [320, 375, 768, 1024, 1280], erros }, null, 2));
     console.log(`${resultados.length} testes passaram. Evidências: ${pasta}`);
     if (process.argv.includes('--keep-open')) {
       console.log('Browser aberto para inspeção. Feche o browser para terminar os servidores temporários.');
@@ -285,6 +298,7 @@ async function main() {
     throw erro;
   } finally {
     pararCiclo?.();
+    await pararValidacao?.();
     await browser?.close();
     await vite?.close();
     if (io) await new Promise(resolve => io.close(resolve));

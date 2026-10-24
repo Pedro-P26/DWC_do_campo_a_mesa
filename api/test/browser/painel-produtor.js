@@ -34,14 +34,24 @@ module.exports = async ({ spa, context, verificar, apiUrl, webUrl, errosBrowser 
     await f.getByLabel('Nome', { exact: true }).fill('Produto do painel Playwright');
     await f.getByLabel('Categoria', { exact: true }).selectOption('Fruta');
     await f.getByLabel('Descrição', { exact: true }).fill('Produto criado na interface');
+    await f.getByLabel('Ingredientes (separados por vírgulas)', { exact: true }).fill('Farinha de milho, Água');
     await f.getByLabel('Preço (€)', { exact: true }).fill('2.50');
     await f.getByLabel('Stock', { exact: true }).fill('3');
     await f.getByLabel('Biológico', { exact: true }).check(); await f.getByLabel('Outono', { exact: true }).check();
     const [r] = await Promise.all([spa.waitForResponse(r => r.url() === `${apiUrl}/api/products` && r.request().method() === 'POST'), f.getByRole('button', { name: 'Guardar produto', exact: true }).click()]);
     expect(r.status()).toBe(201); produto = await r.json();
     expect(produto.produtor).toBe(dono.id); expect(produto.epocas).toEqual(['Outono']); expect(produto.biologico).toBe(true);
+    expect(produto.ingredientes).toEqual(['Farinha de milho', 'Água']);
     await expect(card(produto._id)).toContainText('Stock baixo');
     await expect(spa.getByTestId('stock-baixo')).toContainText('Produto do painel Playwright: 3 kg');
+  });
+  await testar('Pesquisar ingrediente encontra o produto criado no painel', async () => {
+    await spa.goto(webUrl);
+    await spa.getByLabel('Pesquisar produtos', { exact: true }).fill('Farinha de milho');
+    await expect(spa.locator('.cartao-produto')).toHaveCount(1);
+    await expect(spa.locator('.cartao-produto')).toContainText('Produto do painel Playwright');
+    await spa.goto(`${webUrl}/produtor`);
+    await expect(card(produto._id)).toBeVisible();
   });
   await testar('Editar produto altera preco e retira alerta depois de repor stock', async () => {
     await card(produto._id).getByRole('button', { name: 'Editar', exact: true }).click();
@@ -86,7 +96,7 @@ module.exports = async ({ spa, context, verificar, apiUrl, webUrl, errosBrowser 
     }
     await expect(spa.getByTestId('por-tratar')).toHaveText(String(anteriores - 1));
   });
-  await testar('Conta pendente ve painel vazio e criacao bloqueada', async () => {
+  await testar('Conta pendente fica bloqueada; aprovação direta desbloqueia sem recarregar', async () => {
     const r = await context.request.post(`${apiUrl}/api/auth/registo`, { data: { nome: 'Produtor pendente', email: 'painel.pendente@teste.pt', password: 'password123', papel: 'produtor' } });
     expect(r.status()).toBe(201); const s = await r.json();
     const isolado = await context.browser().newContext();
@@ -100,6 +110,9 @@ module.exports = async ({ spa, context, verificar, apiUrl, webUrl, errosBrowser 
     await expect(outro.getByTestId('vendas-mes')).toHaveText(euro(0));
     await expect(outro.getByTestId('avaliacao-media')).toHaveText('Sem avaliações');
     await expect(outro.getByText(/Por implementar/)).toHaveCount(0);
+    await User.updateOne({ _id: s.utilizador.id }, { $set: { 'produtor.validado': true } });
+    await expect(outro.getByRole('button', { name: 'Novo produto', exact: true })).toBeEnabled();
+    await expect(outro.getByRole('status').filter({ hasText: 'A sua conta de produtor foi validada.' })).toBeVisible();
     await isolado.close(); expect(errosBrowser).toEqual([]);
   });
 };

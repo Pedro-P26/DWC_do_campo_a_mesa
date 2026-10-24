@@ -156,7 +156,7 @@ paths:
         -
           name: q
           in: query
-          description: 'Texto literal no nome; sem distinguir maiúsculas.'
+          description: 'Texto literal no nome do produto, ingredientes ou nome do produtor/exploração; sem distinguir maiúsculas.'
           schema:
             type: string
         -
@@ -187,6 +187,12 @@ paths:
           in: query
           schema:
             $ref: '#/components/schemas/ObjectId'
+        -
+          name: localidade
+          in: query
+          description: 'Texto literal na localidade do produtor; combina com os restantes filtros.'
+          schema:
+            type: string
         -
           name: ordenar
           in: query
@@ -408,6 +414,38 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
       description: 'Produtor inexistente, não validado ou identificador inválido devolve 404. A média é null quando não há avaliações visíveis.'
+  /producers/me:
+    patch:
+      operationId: updateOwnProducerPage
+      tags:
+        - Produtores
+      summary: 'Atualizar a página pública do próprio produtor'
+      description: 'Apenas dados públicos; não altera papel, validação ou rejeição. Uma conta pendente também pode preparar a página. Coordenadas null retiram o mapa.'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProducerPageUpdate'
+      responses:
+        '200':
+          description: 'Perfil atualizado, sem passwordHash.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /orders:
     get:
       operationId: listOrders
@@ -997,6 +1035,35 @@ components:
             type: string
           example:
             categoria: 'Path `categoria` is required.'
+    ProducerPageUpdate:
+      type: object
+      minProperties: 1
+      description: 'É necessário enviar pelo menos um campo público reconhecido. Campos administrativos não são alterados.'
+      properties:
+        nomeExploracao:
+          type: string
+          minLength: 1
+          maxLength: 150
+        descricao:
+          type: string
+          maxLength: 1000
+        localidade:
+          type: string
+          minLength: 1
+          maxLength: 150
+        localizacao:
+          type: object
+          nullable: true
+          required: [lat, lng]
+          properties:
+            lat:
+              type: number
+              minimum: -90
+              maximum: 90
+            lng:
+              type: number
+              minimum: -180
+              maximum: 180
     ProducerDetails:
       type: object
       properties:
@@ -1009,6 +1076,7 @@ components:
           type: string
         localizacao:
           type: object
+          nullable: true
           properties:
             lat:
               type: number
@@ -1162,6 +1230,12 @@ components:
         descricao:
           type: string
           maxLength: 1000
+        ingredientes:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+          description: 'Ingredientes pesquisáveis dos produtos preparados.'
         categoria:
           $ref: '#/components/schemas/Categoria'
         preco:
