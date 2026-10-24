@@ -3,6 +3,10 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+$mongodbUri = env('MONGODB_URI', 'mongodb://127.0.0.1:27017/do-campo-a-mesa');
+preg_match('~^mongodb(?:\+srv)?://[^/]+/([^?]*)~', $mongodbUri, $mongodbUriParts);
+$mongodbDatabase = env('MONGODB_DATABASE') ?: (rawurldecode($mongodbUriParts[1] ?? '') ?: 'test');
+
 return [
 
     /*
@@ -17,7 +21,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'mongodb'),
 
     /*
     |--------------------------------------------------------------------------
@@ -31,6 +35,16 @@ return [
     */
 
     'connections' => [
+
+        'mongodb' => [
+            'driver' => 'mongodb',
+            'dsn' => $mongodbUri,
+            'database' => $mongodbDatabase,
+            'options' => [
+                'serverSelectionTimeoutMS' => 3000,
+                'connectTimeoutMS' => 3000,
+            ],
+        ],
 
         'sqlite' => [
             'driver' => 'sqlite',

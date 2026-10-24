@@ -2,31 +2,57 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use MongoDB\Laravel\Auth\User as Authenticatable;
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    protected $connection = 'mongodb';
+
+    protected $table = 'users';
+
+    protected $guarded = ['*'];
+
+    protected $hidden = ['passwordHash', 'remember_token'];
+
+    public const CREATED_AT = 'createdAt';
+
+    public const UPDATED_AT = 'updatedAt';
+
+    public function getAuthPasswordName(): string
+    {
+        return 'passwordHash';
+    }
+
+    public function getRememberTokenName(): string
+    {
+        return '';
+    }
+
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'createdAt' => 'datetime',
+            'updatedAt' => 'datetime',
         ];
+    }
+
+    public function scopePendentes($query)
+    {
+        return $query->where('papel', 'produtor')->where('produtor.validado', false)
+            ->where('produtor.rejeitado', '!=', true);
+    }
+
+    public function getEstadoProdutorAttribute(): string
+    {
+        if (data_get($this->produtor, 'validado')) {
+            return 'Aprovado';
+        }
+
+        return data_get($this->produtor, 'rejeitado') ? 'Rejeitado' : 'Pendente';
     }
 }
