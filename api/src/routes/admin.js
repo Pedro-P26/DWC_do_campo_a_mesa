@@ -46,7 +46,7 @@ router.patch('/produtores/:id/validacao', a(async (req, res) => {
   const produtor = await User.findOneAndUpdate({ _id: id(req.params.id), papel: 'produtor' },
     { $set: { 'produtor.validado': aprovado, 'produtor.rejeitado': !aprovado } }, { new: true, runValidators: true }).select('nome email produtor');
   if (!produtor) throw erro(404, 'Produtor não encontrado');
-  if (aprovado) req.app.get('io')?.to(`user:${produtor._id}`).emit('conta-validada', { id: String(produtor._id) });
+
   res.json(produtor);
 }));
 

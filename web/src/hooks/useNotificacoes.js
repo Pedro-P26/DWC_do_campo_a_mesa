@@ -15,5 +15,6 @@ export function useNotificacoes() {
   useEventoSocket('leilao-ganho', useCallback(e => mostrar(`Ganhou o leilão: ${e.lote}.`, '/encomendas'), [mostrar]));
   useEventoSocket('leilao-terminado', useCallback(e => mostrar(`Terminou o leilão: ${e.lote}.`, '/produtor'), [mostrar]));
   useEventoSocket('conta-validada', useCallback(() => { mostrar('A sua conta de produtor foi validada.', '/produtor'); atualizar().catch(() => {}); }, [mostrar, atualizar]));
+  useEventoSocket('connect', useCallback(() => { atualizar().catch(() => {}); }, [atualizar]));
   return { notificacoes, remover };
 }

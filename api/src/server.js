@@ -20,8 +20,10 @@ async function iniciar() {
   // Disponibiliza o io às rotas (ex.: notificar o comprador quando a encomenda muda)
   app.set('io', io);
   registarSockets(io);
+  const pararValidacao = await require('./services/validacaoProdutores')(io);
   const pararCiclo = require('./services/cicloLeiloes')(io);
   server.on('close', pararCiclo);
+  server.on('close', () => pararValidacao().catch(console.error));
 
   server.listen(PORT, () => {
     console.log(`API em http://localhost:${PORT}`);
