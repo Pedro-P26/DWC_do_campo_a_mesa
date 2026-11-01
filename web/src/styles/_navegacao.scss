@@ -115,37 +115,3 @@ html { scroll-padding-bottom: calc(var(--espaco-barra-mobile) + 1rem); }
   &:hover { background: #dcebcf; color: $verde-escuro; }
   &:focus-visible { outline: 2px solid $verde; outline-offset: 2px; }
 }
-
-.perfil {
-  width: 100%;
-  max-width: 44rem;
-  margin-inline: auto;
-  &__identidade { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; h1 { font-size: 2rem; margin-bottom: .25rem; } }
-  &__avatar { display: grid; place-items: center; flex-shrink: 0; width: 56px; height: 56px; border-radius: 50%; background: #edf3eb; color: $verde; }
-  &__dados {
-    margin: 0;
-    > div {
-      display: grid;
-      gap: .35rem;
-      padding: 1rem 0;
-      border-bottom: 1px solid #e2e8df;
-      @include a-partir-de(md) { grid-template-columns: 10rem minmax(0, 1fr); }
-    }
-    dt { font-size: .85rem; color: $texto-secundario; }
-    dd { margin: 0; overflow-wrap: anywhere; }
-  }
-  &__estado {
-    display: inline-flex; align-items: center; gap: .35rem;
-    color: $terracota;
-    &.aprovado { color: $verde; }
-  }
-  &__acoes {
-    display: flex;
-    flex-direction: column;
-    gap: .75rem;
-    margin-top: 1.5rem;
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 46px; border-radius: .5rem; }
-    @include a-partir-de(md) { flex-direction: row; flex-wrap: wrap; }
-  }
-  .alert { margin-top: 1rem; }
-}
