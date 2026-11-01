@@ -30,8 +30,13 @@ router.get('/', a(async (req, res) => {
 
 // POST /api/reviews/:id/denuncia  -> 204
 router.post('/:id/denuncia', auth(), a(async (req, res) => {
-  const avaliacao = await Review.findOneAndUpdate({ _id: id(req.params.id), visivel: true }, { $inc: { denuncias: 1 } });
-  if (!avaliacao) throw erro(404, 'Avaliação não encontrada');
+  const filtro = { _id: id(req.params.id), visivel: true };
+  const avaliacao = await Review.findOneAndUpdate({ ...filtro, denunciantes: { $ne: req.user.id } },
+    { $inc: { denuncias: 1 }, $addToSet: { denunciantes: req.user.id } });
+  if (!avaliacao) {
+    if (await Review.exists(filtro)) throw erro(409, 'Já denunciou esta avaliação');
+    throw erro(404, 'Avaliação não encontrada');
+  }
   res.status(204).end();
 }));
 

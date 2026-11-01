@@ -4,6 +4,7 @@ const { isObjectIdOrHexString, Types } = require('mongoose');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
+const avaliacoesProdutos = require('../services/avaliacoesProdutos');
 const a = require('../utils/async');
 const { escaparRegex, objeto, texto } = require('../utils/validar');
 const auth = require('../middleware/auth');
@@ -51,7 +52,7 @@ router.get('/:id', async (req, res, next) => {
         { $group: { _id: null, media: { $avg: '$classificacao' } } }
       ])
     ]);
-    res.json({ produtor, produtos, avaliacaoMedia: avaliacoes[0]?.media ?? null });
+    res.json({ produtor, produtos: await avaliacoesProdutos(produtos), avaliacaoMedia: avaliacoes[0]?.media ?? null });
   } catch (err) { next(err); }
 });
 

@@ -577,6 +577,7 @@ paths:
   /auctions:
     get:
       operationId: listAuctions
+      description: Sem pagina/limite devolve a lista completa. Com pagina ou limite devolve dados e metadados; páginas acima do total são ajustadas para a última página.
       tags:
         - 'Leilões'
       summary: 'Listar leilões'
@@ -586,14 +587,25 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Auction'
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Auction'
+                  - allOf:
+                      - $ref: '#/components/schemas/Pagina'
+                      - type: object
+                        properties:
+                          dados:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Auction'
         '400':
           $ref: '#/components/responses/BadRequest'
         '500':
           $ref: '#/components/responses/InternalError'
       parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
         -
           name: estado
           in: query
@@ -765,6 +777,7 @@ paths:
       tags:
         - 'Avaliações'
       summary: 'Denunciar avaliação visível'
+      description: 'Exige sessão. Cada utilizador pode denunciar uma vez enquanto as denúncias estiverem por resolver. Repetições devolvem 409; avaliações ocultas devolvem 404. A resolução administrativa limpa o contador e os denunciantes.'
       responses:
         '204':
           description: 'Denúncia registada; sem corpo.'
@@ -774,6 +787,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
       security:
@@ -804,18 +819,33 @@ paths:
   /admin/produtores/pendentes:
     get:
       operationId: pendingProducers
+      description: Sem pagina/limite devolve a lista completa. Com pagina ou limite devolve dados e metadados; páginas acima do total são ajustadas para a última página.
       tags:
         - 'Administração'
       summary: 'Listar produtores por validar (admin)'
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
       responses:
         '200':
           description: 'Produtores ainda não aprovados nem rejeitados, incluindo email e createdAt.'
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProducerPublic'
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/ProducerPublic'
+                  - allOf:
+                      - $ref: '#/components/schemas/Pagina'
+                      - type: object
+                        properties:
+                          dados:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ProducerPublic'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -868,18 +898,33 @@ paths:
   /admin/reviews/denunciadas:
     get:
       operationId: reportedReviews
+      description: Sem pagina/limite devolve a lista completa. Com pagina ou limite devolve dados e metadados; páginas acima do total são ajustadas para a última página.
       tags:
         - 'Administração'
       summary: 'Listar avaliações denunciadas (admin)'
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
       responses:
         '200':
           description: 'Avaliações com autor/produtor populados, incluindo as ocultas.'
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Review'
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  - allOf:
+                      - $ref: '#/components/schemas/Pagina'
+                      - type: object
+                        properties:
+                          dados:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -936,6 +981,21 @@ components:
       bearerFormat: JWT
       description: 'No botão Authorize, colar apenas o token devolvido pelo login, sem o prefixo Bearer.'
   parameters:
+    Pagina:
+      name: pagina
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Limite:
+      name: limite
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 5
     Id:
       name: id
       in: path
@@ -987,6 +1047,26 @@ components:
           schema:
             $ref: '#/components/schemas/Erro'
   schemas:
+    Pagina:
+      type: object
+      required: [dados, total, pagina, limite, totalPaginas]
+      properties:
+        dados:
+          type: array
+          items: {}
+        total:
+          type: integer
+          minimum: 0
+        pagina:
+          type: integer
+          minimum: 1
+        limite:
+          type: integer
+          minimum: 1
+          maximum: 50
+        totalPaginas:
+          type: integer
+          minimum: 1
     ObjectId:
       type: string
       pattern: '^[a-fA-F0-9]{24}$'
@@ -1289,6 +1369,18 @@ components:
             imagemUrl:
               type: string
               format: uri
+            avaliacaoMedia:
+              type: number
+              nullable: true
+              minimum: 1
+              maximum: 5
+              readOnly: true
+              description: Média das avaliações visíveis deste produto, calculada nas listagens; null quando não há avaliações.
+            numeroAvaliacoes:
+              type: integer
+              minimum: 0
+              readOnly: true
+              description: Número de avaliações visíveis deste produto, calculado nas listagens.
             createdAt:
               type: string
               format: date-time
@@ -1496,6 +1588,22 @@ components:
         -
           required:
             - duracao
+    AuctionProductReference:
+      oneOf:
+        - $ref: '#/components/schemas/ObjectId'
+        - type: object
+          nullable: true
+          required: [_id]
+          properties:
+            _id:
+              $ref: '#/components/schemas/ObjectId'
+            nome:
+              type: string
+            categoria:
+              type: string
+            imagemUrl:
+              type: string
+      description: Referência ao produto; nas listagens inclui nome, categoria e imagem quando disponíveis.
     Auction:
       type: object
       required:
@@ -1513,7 +1621,7 @@ components:
         produtor:
           $ref: '#/components/schemas/ProducerReference'
         produto:
-          $ref: '#/components/schemas/ObjectId'
+          $ref: '#/components/schemas/AuctionProductReference'
         lote:
           type: string
         descricao:

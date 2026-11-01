@@ -8,6 +8,7 @@ const produtorValidado = require('../middleware/produtorValidado');
 const a = require('../utils/async');
 const erro = require('../utils/erro');
 const { id, objeto, escolher } = require('../utils/validar');
+const paginar = require('../utils/paginar');
 
 // GET /api/auctions?estado=ativo  -> 200 [leilões]
 router.get('/', a(async (req, res) => {
@@ -16,7 +17,8 @@ router.get('/', a(async (req, res) => {
     if (!['agendado', 'ativo', 'terminado'].includes(req.query.estado)) throw erro(400, 'Estado inválido');
     filtro.estado = req.query.estado;
   }
-  res.json(await Auction.find(filtro).sort({ iniciaEm: -1 }).populate('produtor', 'nome produtor'));
+  res.json(await paginar(Auction.find(filtro).sort({ iniciaEm: -1, _id: -1 }).populate('produtor', 'nome produtor')
+    .populate('produto', 'nome categoria imagemUrl'), req.query));
 }));
 
 // GET /api/auctions/:id  -> 200 leilão + últimas licitações

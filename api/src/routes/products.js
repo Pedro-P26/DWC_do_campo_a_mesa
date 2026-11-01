@@ -6,6 +6,7 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const produtorValidado = require('../middleware/produtorValidado');
 const imagens = require('../services/imagens');
+const avaliacoesProdutos = require('../services/avaliacoesProdutos');
 const a = require('../utils/async');
 const erro = require('../utils/erro');
 const { id, objeto, texto, escaparRegex, escolher } = require('../utils/validar');
@@ -42,7 +43,7 @@ router.get('/', async (req, res, next) => {
     if (ordenar !== undefined && !Object.hasOwn(ORDENACAO, texto(ordenar))) throw erro(400, 'Ordenação inválida');
     const lista = await Product.find(filtro).sort(ORDENACAO[ordenar] || ORDENACAO.recentes)
       .populate('produtor', 'nome produtor.localidade produtor.nomeExploracao');
-    res.json(lista);
+    res.json(await avaliacoesProdutos(lista));
   } catch (err) { next(err); }
 });
 

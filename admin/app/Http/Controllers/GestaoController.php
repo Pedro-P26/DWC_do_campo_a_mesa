@@ -61,6 +61,7 @@ class GestaoController extends Controller
         $campos = ['visivel' => $dados['decisao'] !== 'ocultar'];
         if ($dados['decisao'] === 'manter') {
             $campos['denuncias'] = 0;
+            $campos['denunciantes'] = [];
         }
         Avaliacao::where('id', $id)->update($campos);
 

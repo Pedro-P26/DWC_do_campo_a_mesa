@@ -14,7 +14,7 @@ module.exports = (io, socket) => {
     if (!valido()) return;
     try {
       if (!mongoose.isValidObjectId(id)) return socket.emit('recusada', 'Leilão inválido');
-      const leilao = await Auction.findById(id).populate('produtor', 'nome produtor.localidade').populate('produto', 'imagemUrl');
+      const leilao = await Auction.findById(id).populate('produtor', 'nome produtor.localidade produtor.nomeExploracao').populate('produto', 'imagemUrl');
       if (!leilao) return socket.emit('recusada', 'Leilão não encontrado');
       await socket.join(sala(id));
       const licitacoes = await Bid.find({ leilao: id }).sort({ createdAt: -1, _id: -1 }).limit(20);

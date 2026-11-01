@@ -9,8 +9,9 @@ const reviewSchema = new Schema({
   classificacao: { type: Number, min: 1, max: 5, required: true, validate: Number.isInteger },
   comentario: { type: String, maxlength: 1000 },
   denuncias: { type: Number, default: 0, min: 0 },
+  denunciantes: { type: [{ type: Types.ObjectId, ref: 'User' }], default: [], select: false },
   visivel: { type: Boolean, default: true }
-}, { timestamps: true });
+}, { timestamps: true, toJSON: { transform: (doc, dados) => { delete dados.denunciantes; return dados; } } });
 
 // Uma avaliação de cada produto (ou do produtor) por encomenda e autor.
 reviewSchema.index({ encomenda: 1, autor: 1, produto: 1 }, {

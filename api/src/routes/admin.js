@@ -9,6 +9,7 @@ const a = require('../utils/async');
 const erro = require('../utils/erro');
 const { id, objeto } = require('../utils/validar');
 const periodosEstatisticas = require('../utils/periodosEstatisticas');
+const paginar = require('../utils/paginar');
 
 // $ne inclui contas antigas, anteriores à introdução do campo rejeitado.
 const pendentes = { papel: 'produtor', 'produtor.validado': false, 'produtor.rejeitado': { $ne: true } };
@@ -36,7 +37,7 @@ router.get('/estatisticas', a(async (req, res) => {
 
 // GET /api/admin/produtores/pendentes  -> 200 [produtores por validar]
 router.get('/produtores/pendentes', a(async (req, res) => {
-  res.json(await User.find(pendentes).select('nome email produtor createdAt').sort({ createdAt: 1 }));
+  res.json(await paginar(User.find(pendentes).select('nome email produtor createdAt').sort({ createdAt: 1, _id: 1 }), req.query));
 }));
 
 // PATCH /api/admin/produtores/:id/validacao  { aprovado: true|false }  -> 200
@@ -52,7 +53,7 @@ router.patch('/produtores/:id/validacao', a(async (req, res) => {
 
 // GET /api/admin/reviews/denunciadas  -> 200
 router.get('/reviews/denunciadas', a(async (req, res) => {
-  res.json(await Review.find({ denuncias: { $gt: 0 } }).sort({ createdAt: -1 }).populate('autor produtor', 'nome'));
+  res.json(await paginar(Review.find({ denuncias: { $gt: 0 } }).sort({ createdAt: -1, _id: -1 }).populate('autor produtor', 'nome'), req.query));
 }));
 
 // PATCH /api/admin/reviews/:id  { visivel: false, resolverDenuncias?: boolean }  -> 200
@@ -61,7 +62,7 @@ router.patch('/reviews/:id', a(async (req, res) => {
   if (typeof visivel !== 'boolean') throw erro(400, 'Indique visivel como booleano');
   if (resolverDenuncias !== undefined && typeof resolverDenuncias !== 'boolean') throw erro(400, 'Indique resolverDenuncias como booleano');
   const avaliacao = await Review.findByIdAndUpdate(id(req.params.id),
-    { $set: { visivel, ...(resolverDenuncias ? { denuncias: 0 } : {}) } }, { new: true, runValidators: true });
+    { $set: { visivel, ...(resolverDenuncias ? { denuncias: 0, denunciantes: [] } : {}) } }, { new: true, runValidators: true });
   if (!avaliacao) throw erro(404, 'Avaliação não encontrada');
   res.json(avaliacao);
 }));
