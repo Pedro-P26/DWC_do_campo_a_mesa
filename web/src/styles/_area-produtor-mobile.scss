@@ -1,0 +1,77 @@
+.area-produtor .editor-alternar-mobile { display: none; }
+
+// Ajustes de composição nos ecrãs pequenos; o layout desktop mantém-se.
+@media (max-width: 767.98px) {
+  .pagina-cabecalho {
+    padding: .65rem 0 1rem;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    h1 { font-size: clamp(1.5rem, 7vw, 1.85rem); line-height: 1.2; }
+    p:last-child { font-size: .85rem; line-height: 1.6; }
+    &--verde { padding: 1.1rem; border-radius: .8rem; > .btn { width: 100%; } }
+  }
+  .pagina-sobretitulo { font-size: .65rem; letter-spacing: .07em; }
+  .ligacao-voltar { margin-bottom: .25rem; font-size: .8rem; }
+  .area-produtor {
+    .form-control, .form-select { font-size: 1rem; }
+    .editor-alternar-mobile { display: flex; width: 100%; margin-bottom: 1rem; }
+    .editor-alternar-mobile--ajuda { margin: 0; order: 1; }
+  }
+  .editor-layout { gap: 1rem; }
+  .formulario-editor { border-radius: .8rem; }
+  .editor-secao {
+    padding: 1rem;
+    &__titulo { gap: .65rem; margin-bottom: 1rem; > span { width: 34px; height: 34px; } h2 { font-size: 1.1rem; } p { font-size: .8rem; line-height: 1.5; } }
+  }
+  .editor-campos { gap: .5rem; }
+  .editor-rodape {
+    flex-direction: column-reverse;
+    gap: .5rem;
+    padding: 1rem;
+    > .btn { width: 100%; }
+  }
+  .editor-conselho { display: none; padding: 1rem; order: 2; &--aberto { display: block; } }
+  .editor-previa {
+    display: none; order: -1; padding: 1rem;
+    &--aberta { display: block; }
+    &__marca { width: 48px; height: 48px; margin: .75rem 0; svg { width: 26px; } }
+    h2 { font-size: 1.3rem; }
+  }
+  .painel-produtor {
+    &__ferramentas { display: grid; gap: .6rem; margin-bottom: 1rem; nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); a { justify-content: center; } } > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); .btn { padding-inline: .4rem; font-size: .75rem; } } }
+    &__indicadores {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin-inline: 0;
+      > div { padding: 0; margin: 0; min-width: 0; }
+      > div:last-child { grid-column: 1 / -1; .painel-metrica { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; column-gap: .6rem; &__icone { grid-row: 1 / 3; } h2 { min-height: 0; margin: 0; } > p { font-size: 1.2rem; margin: 0; } small { grid-column: 2 / -1; } } }
+    }
+    &__stock { padding: .85rem; > p { margin-bottom: .5rem; } .alert { padding: .65rem; } }
+  }
+  .painel-metrica {
+    display: block; padding: .85rem;
+    &__icone { width: 30px; height: 30px; margin-bottom: .5rem; svg { width: 17px; } }
+    h2 { min-height: 2.5em; font-size: .75rem; line-height: 1.3; }
+    > p { font-size: 1.35rem; margin: .25rem 0 .5rem; overflow-wrap: anywhere; }
+    small { font-size: .7rem; line-height: 1.5; }
+  }
+  .secao-cabecalho { margin: 1.5rem 0 1rem; gap: .35rem; h2 { font-size: 1.35rem; } > span { font-size: .75rem; } }
+  .produto-gestao {
+    display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: .5rem .75rem; padding: .85rem !important;
+    > * { grid-column: 1 / -1; min-width: 0; }
+    &__imagem, &__sem-imagem { grid-column: 1; grid-row: 1 / 4; height: 80px; margin: 0; }
+    h3 { grid-column: 2; font-size: 1rem; margin: 0; }
+    > p { margin: 0; font-size: .8rem; }
+    > p:nth-of-type(1), > p:nth-of-type(2) { grid-column: 2; }
+    > p:empty { display: none; }
+    > .d-flex { flex-wrap: wrap; margin: .25rem 0 0 !important; .btn { flex: 1; } }
+    label { padding-top: .65rem; margin: 0; }
+    input[type='file'] { font-size: .75rem; }
+  }
+  .produtor-apresentacao {
+    padding: 1.1rem; gap: 1rem; border-radius: .8rem;
+    h1 { font-size: 1.65rem; }
+    &__localidade { font-size: .8rem; }
+    &__numeros { padding-top: .75rem; gap: 1.5rem; > div { grid-template-columns: auto 1fr; align-items: center; gap: .25rem .4rem; strong { font-size: 1.15rem; } > svg { width: 17px; } > span { grid-column: 1 / -1; font-size: .7rem; } } }
+  }
+  .produtor-historia { padding: 1rem; h2 { font-size: 1.2rem; } > p:last-child { font-size: .85rem; line-height: 1.65; } }
+  .produtor-avaliacoes { margin-top: 1.5rem; padding-top: 1rem; > h2 { font-size: 1.35rem; } }
+}
