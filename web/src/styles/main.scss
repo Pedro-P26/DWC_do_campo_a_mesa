@@ -10,7 +10,7 @@
 @import 'area-produtor-mobile';
 @import 'perfil';
 @import 'produto';
-//@import 'leiloes';
+@import 'leiloes';
 //@import 'paineis';
 
 body { background: #f7f8f5; }
@@ -57,12 +57,18 @@ main { overflow-wrap: anywhere; }
 }
 
 .formulario-estreito { max-width: 28rem; margin-inline: auto; }
-// Sala de leilão: coluna única no telemóvel, duas colunas a partir de lg
-.sala-leilao {
-  display: grid; gap: 1.5rem;
-  > * { min-width: 0; }
-  @include a-partir-de(lg) { grid-template-columns: minmax(0, 1fr) 22rem; }
-  .valor-atual { font-size: 2.25rem; font-weight: 700; }
+.leiloes-vazio {
+  max-width: 40rem;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #dce5d8;
+  border-radius: .75rem;
+  p { color: $texto-secundario; }
+  .btn { min-height: 44px; }
+  &__icone { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 1rem; border-radius: 50%; background: #edf3eb; color: $verde; }
+  @include a-partir-de(md) { padding: 2.5rem; }
 }
 
 .por-implementar {
