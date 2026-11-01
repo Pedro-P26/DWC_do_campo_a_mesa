@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import PaginaAutenticacao from '../components/PaginaAutenticacao.jsx';
+import CampoPassword from '../components/CampoPassword.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const INICIO = { comprador: '/', produtor: '/produtor', admin: '/admin' };
@@ -28,24 +30,19 @@ export default function Login() {
     }
   }
 
-  return (
-    <form className="formulario-estreito" onSubmit={submeter}>
-      <div className="autenticacao__cabecalho">
-        <Link to="/perfil" state={location.state} className="autenticacao__voltar d-lg-none" aria-label="Voltar ao perfil" title="Voltar ao perfil">
-          <ArrowLeft size={22} aria-hidden="true" />
-        </Link>
-        <h1>Entrar</h1>
+  return <PaginaAutenticacao>
+    <form className="autenticacao-formulario" onSubmit={submeter}>
+      <div className="autenticacao-campo">
+        <label htmlFor="email" className="form-label">Email</label>
+        <input id="email" type="email" autoComplete="username" className="form-control" required disabled={aEntrar}
+          value={dados.email} onChange={e => setDados({ ...dados, email: e.target.value })} />
       </div>
-      <label htmlFor="email" className="form-label">Email</label>
-      <input id="email" type="email" autoComplete="username" className="form-control mb-3" required disabled={aEntrar}
-        value={dados.email} onChange={(e) => setDados({ ...dados, email: e.target.value })} />
-      <label htmlFor="password" className="form-label">Password</label>
-      <input id="password" type="password" autoComplete="current-password" className="form-control mb-3" required disabled={aEntrar}
-        value={dados.password} onChange={(e) => setDados({ ...dados, password: e.target.value })} />
+      <CampoPassword value={dados.password} onChange={e => setDados({ ...dados, password: e.target.value })} disabled={aEntrar} />
       {erro && <div className="alert alert-danger" role="alert">{erro}</div>}
-      <button type="submit" className="btn btn-success w-100" disabled={aEntrar}>
-        {aEntrar ? 'A entrar…' : 'Entrar'}
+      <button type="submit" className="btn btn-success autenticacao-submeter" disabled={aEntrar}>
+        {aEntrar ? 'A entrar…' : 'Entrar'}<ArrowRight size={18} aria-hidden="true" />
       </button>
+      <p className="autenticacao-alternar">Ainda não tem conta? <Link to="/registo" state={location.state}>Criar conta</Link></p>
     </form>
-  );
+  </PaginaAutenticacao>;
 }

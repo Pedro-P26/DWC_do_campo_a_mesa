@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowRight, ShieldCheck, ShoppingBasket, Sprout } from 'lucide-react';
+import PaginaAutenticacao from '../components/PaginaAutenticacao.jsx';
+import CampoPassword from '../components/CampoPassword.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 export default function Registo() {
   const { registar } = useAuth();
@@ -20,33 +22,44 @@ export default function Registo() {
       navigate(location.state?.de || (u.papel === 'produtor' ? '/produtor' : '/'), { replace: true });
     } catch (err) { setErro(err.message); } finally { setARegistar(false); }
   }
-  return <form className="formulario-estreito" onSubmit={submeter}>
-    <div className="autenticacao__cabecalho">
-      <Link to="/perfil" state={location.state} className="autenticacao__voltar d-lg-none" aria-label="Voltar ao perfil" title="Voltar ao perfil">
-        <ArrowLeft size={22} aria-hidden="true" />
-      </Link>
-      <h1>Registar</h1>
-    </div>
-    <fieldset disabled={aRegistar}>
-      <label className="form-label" htmlFor="nome">Nome</label>
-      <input id="nome" name="nome" autoComplete="name" className="form-control mb-3" required maxLength={100} value={dados.nome} onChange={campo} />
-      <label className="form-label" htmlFor="email">Email</label>
-      <input id="email" name="email" type="email" autoComplete="username" className="form-control mb-3" required value={dados.email} onChange={campo} />
-      <label className="form-label" htmlFor="password">Password</label>
-      <input id="password" name="password" type="password" autoComplete="new-password" className="form-control mb-3" required minLength={8} maxLength={72} value={dados.password} onChange={campo} />
-      <label className="form-label" htmlFor="papel">Tipo de conta</label>
-      <select id="papel" name="papel" className="form-select mb-3" value={dados.papel} onChange={campo}>
-        <option value="comprador">Comprador</option><option value="produtor">Produtor</option>
-      </select>
-      {dados.papel === 'produtor' && <>
-        <label className="form-label" htmlFor="nomeExploracao">Nome da exploração</label>
-        <input id="nomeExploracao" name="nomeExploracao" className="form-control mb-3" required value={dados.nomeExploracao} onChange={campo} />
-        <label className="form-label" htmlFor="localidade">Localidade</label>
-        <input id="localidade" name="localidade" className="form-control mb-3" required value={dados.localidade} onChange={campo} />
-        <p>A conta de produtor precisa de aprovação do administrador para criar produtos e leilões.</p>
-      </>}
-      {erro && <div className="alert alert-danger" role="alert">{erro}</div>}
-      <button className="btn btn-success w-100" type="submit">{aRegistar ? 'A registar…' : 'Registar'}</button>
-    </fieldset>
-  </form>;
+  return <PaginaAutenticacao registo>
+    <form className="autenticacao-formulario" onSubmit={submeter}>
+      <fieldset disabled={aRegistar}>
+        <div className="autenticacao-campo">
+          <label className="form-label" htmlFor="nome">Nome</label>
+          <input id="nome" name="nome" autoComplete="name" className="form-control" required maxLength={100} value={dados.nome} onChange={campo} />
+        </div>
+        <div className="autenticacao-campo">
+          <label className="form-label" htmlFor="email">Email</label>
+          <input id="email" name="email" type="email" autoComplete="username" className="form-control" required value={dados.email} onChange={campo} />
+        </div>
+        <CampoPassword value={dados.password} onChange={campo} disabled={aRegistar} nova />
+        <div className="autenticacao-campo">
+          <label className="form-label" htmlFor="papel">Tipo de conta</label>
+          <select id="papel" name="papel" className="form-select" value={dados.papel} onChange={campo} aria-describedby="ajuda-tipo-conta">
+            <option value="comprador">Comprador</option><option value="produtor">Produtor</option>
+          </select>
+          <p id="ajuda-tipo-conta" className="autenticacao-tipo">
+            {dados.papel === 'produtor' ? <Sprout size={18} aria-hidden="true" /> : <ShoppingBasket size={18} aria-hidden="true" />}
+            {dados.papel === 'produtor' ? 'Dê a conhecer a sua exploração e venda os seus produtos.' : 'Descubra produtos locais, faça encomendas e participe em leilões.'}
+          </p>
+        </div>
+        {dados.papel === 'produtor' && <section className="autenticacao-exploracao" aria-labelledby="titulo-exploracao">
+          <h2 id="titulo-exploracao">A sua exploração</h2>
+          <div className="autenticacao-campo">
+            <label className="form-label" htmlFor="nomeExploracao">Nome da exploração</label>
+            <input id="nomeExploracao" name="nomeExploracao" className="form-control" required value={dados.nomeExploracao} onChange={campo} />
+          </div>
+          <div className="autenticacao-campo">
+            <label className="form-label" htmlFor="localidade">Localidade</label>
+            <input id="localidade" name="localidade" autoComplete="address-level2" className="form-control" required value={dados.localidade} onChange={campo} />
+          </div>
+          <p className="autenticacao-exploracao__nota"><ShieldCheck size={18} aria-hidden="true" />A conta de produtor precisa de aprovação do administrador para criar produtos e leilões.</p>
+        </section>}
+        {erro && <div className="alert alert-danger" role="alert">{erro}</div>}
+        <button className="btn btn-success autenticacao-submeter" type="submit">{aRegistar ? 'A registar…' : 'Registar'}<ArrowRight size={18} aria-hidden="true" /></button>
+      </fieldset>
+      <p className="autenticacao-alternar">Já tem conta? <Link to="/login" state={location.state}>Entrar</Link></p>
+    </form>
+  </PaginaAutenticacao>;
 }

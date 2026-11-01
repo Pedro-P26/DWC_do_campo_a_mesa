@@ -1,0 +1,55 @@
+.pagina-autenticacao { max-width: 66rem; margin-inline: auto; }
+.autenticacao-layout { display: grid; grid-template-columns: minmax(0, 1fr); border: 1px solid #dce3d7; border-radius: 1rem; background: #fff; overflow: hidden; > * { min-width: 0; } }
+.autenticacao-apresentacao { display: none; }
+.autenticacao-conteudo { padding: 1.25rem; }
+.autenticacao__voltar {
+  display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; margin: -.5rem 0 .75rem; font-size: .8rem; color: $verde;
+  &:hover { text-decoration: underline; }
+}
+.autenticacao__cabecalho {
+  margin-bottom: 1.5rem;
+  .pagina-sobretitulo { margin-bottom: .5rem; }
+  h1 { margin: 0 0 .65rem; font-family: Georgia, serif; font-size: clamp(1.65rem, 7vw, 2rem); line-height: 1.2; }
+  > p:last-child { margin: 0; font-size: .85rem; color: $texto-secundario; line-height: 1.7; }
+}
+.autenticacao-formulario {
+  fieldset { min-width: 0; padding: 0; margin: 0; border: 0; }
+  .form-label { font-size: .8rem; font-weight: 600; margin-bottom: .5rem; }
+  .form-control, .form-select { min-height: 48px; border-color: #cad6c3; border-radius: .5rem; background-color: #fafbf8; font-size: 1rem; &:focus { background-color: #fff; } }
+  .alert { font-size: .85rem; line-height: 1.6; border-radius: .5rem; }
+}
+.autenticacao-campo { min-width: 0; margin-bottom: 1.1rem; }
+.autenticacao-password {
+  position: relative;
+  .form-control { padding-right: 3.25rem; }
+  > button { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 48px; height: 100%; min-height: 44px; border: 0; border-radius: .5rem; color: $verde; background: transparent; &:focus-visible { outline: 2px solid $verde; outline-offset: -3px; } &:disabled { opacity: .5; } }
+}
+.autenticacao-ajuda { margin: .5rem 0 0; font-size: .75rem; line-height: 1.6; color: $texto-secundario; }
+.autenticacao-submeter { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 48px; padding: .75rem 1rem; border-radius: .5rem; font-size: .9rem; margin-top: .5rem; }
+.autenticacao-alternar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .15rem .4rem; border-top: 1px solid #e8ede3; padding-top: 1rem; margin: 1.25rem 0 0; color: $texto-secundario; font-size: .8rem; a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; } }
+.autenticacao-tipo { display: flex; align-items: flex-start; gap: .5rem; font-size: .75rem; color: $texto-secundario; line-height: 1.7; margin: .65rem 0 0; svg { flex-shrink: 0; margin-top: .15rem; color: $verde; } }
+.autenticacao-exploracao {
+  padding: 1rem; margin: .25rem 0 1.25rem; border: 1px solid #e1e8dc; border-radius: .65rem; background: #f4f7f0;
+  h2 { font-family: Georgia, serif; font-size: 1.15rem; margin: 0 0 1rem; }
+  .form-control { background: #fff; }
+  &__nota { display: flex; gap: .5rem; align-items: flex-start; margin: 0; font-size: .75rem; color: $texto-secundario; line-height: 1.7; svg { flex-shrink: 0; color: $verde; margin-top: .1rem; } }
+}
+@include a-partir-de(md) {
+  .pagina-autenticacao { max-width: 36rem; padding-block: 1rem; }
+  .autenticacao-conteudo { padding: 2rem; }
+}
+@include a-partir-de(lg) {
+  .pagina-autenticacao { max-width: 66rem; padding-block: 1.5rem; }
+  .autenticacao-layout { grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); align-items: stretch; }
+  .autenticacao-conteudo { padding: 2.5rem; align-self: center; }
+  .autenticacao__cabecalho h1 { font-size: 2rem; }
+  .autenticacao-apresentacao {
+    display: flex; flex-direction: column; align-items: flex-start; padding: 2.5rem; background: $verde-escuro; color: #fffdf7;
+    &__simbolo { display: grid; place-items: center; width: 76px; height: 76px; border: 1px solid rgba(#fff, .2); border-radius: 50%; margin-bottom: 2.5rem; color: #dcebcf; }
+    .pagina-sobretitulo { color: #e6c997; font-size: .7rem; }
+    h2 { font-family: Georgia, serif; font-size: clamp(1.8rem, 2.6vw, 2.5rem); line-height: 1.2; margin: .5rem 0 1.25rem; }
+    > p:not(.pagina-sobretitulo) { font-size: .9rem; line-height: 1.8; color: #d3e0ce; margin-bottom: 2rem; }
+    &__origem { display: flex; align-items: flex-start; gap: .8rem; margin-bottom: 1.5rem; > svg { flex-shrink: 0; color: #c2d8af; } strong { display: block; font-size: .85rem; font-weight: 600; } span { display: block; margin-top: .4rem; font-size: .75rem; line-height: 1.7; color: #d3e0ce; } }
+    > a { display: inline-flex; align-items: center; justify-content: space-between; gap: 2rem; min-height: 44px; margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(#fff, .2); width: 100%; font-size: .8rem; font-weight: 600; color: #fffdf7; &:hover { text-decoration: underline; } }
+  }
+}
