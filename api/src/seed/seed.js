@@ -68,6 +68,7 @@ async function seed() {
   try {
     await ligarBD();
     await popularBD();
+    console.log('Avaliações de demonstração:', await require('./avaliacoes').carregarAvaliacoesDemo());
   } finally {
     await mongoose.disconnect();
   }

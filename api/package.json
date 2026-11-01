@@ -9,6 +9,7 @@
     "dev": "nodemon src/server.js",
     "seed": "node src/seed/seed.js",
     "seed:testes": "node src/seed/testes.js",
+    "seed:avaliacoes": "node src/seed/avaliacoes.js",
     "test": "node --test test/*.test.js",
     "docs:validate": "node scripts/validar-openapi.js",
     "test:browser:frontend": "node test/browser/frontend.js --headless",

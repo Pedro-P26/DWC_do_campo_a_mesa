@@ -117,6 +117,8 @@ async function main() {
     await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 15000 });
     console.log(`Base de dados: ${mongoose.connection.name}`);
     const resultado = await carregarTestes();
+    const avaliacoes = await require('./avaliacoes').carregarAvaliacoesDemo();
+    console.log('Avaliações de demonstração:', avaliacoes);
     console.log(`Criados ${resultado.utilizadoresCriados} utilizadores e ${resultado.produtosCriados} produtos.`);
     console.log(`Atualizadas ${resultado.imagensPreenchidas} imagens em falta ou repetidas.`);
     console.log(`Password das contas novas: ${PASSWORD_TESTE}`);
