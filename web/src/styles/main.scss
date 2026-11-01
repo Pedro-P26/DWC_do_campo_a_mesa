@@ -9,6 +9,7 @@
 @import 'area-produtor';
 @import 'area-produtor-mobile';
 @import 'perfil';
+@import 'produto';
 //@import 'leiloes';
 //@import 'paineis';
 
@@ -56,10 +57,6 @@ main { overflow-wrap: anywhere; }
 }
 
 .formulario-estreito { max-width: 28rem; margin-inline: auto; }
-.produto-detalhe__imagem { width: 100%; aspect-ratio: 7 / 5; object-fit: cover; border-radius: $border-radius; }
-.produto-detalhe__sem-imagem { display: grid; place-items: center; aspect-ratio: 7 / 5; padding: 1rem; background: #edf3eb; border-radius: $border-radius; }
-.produto-detalhe__descricao { white-space: pre-line; }
-
 // Sala de leilão: coluna única no telemóvel, duas colunas a partir de lg
 .sala-leilao {
   display: grid; gap: 1.5rem;

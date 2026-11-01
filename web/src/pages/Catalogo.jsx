@@ -1,5 +1,5 @@
 // Visitante: catálogo com pesquisa e filtros
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Leaf, MapPin, Search, SlidersHorizontal, Sprout, X } from 'lucide-react';
 import CartaoProduto from '../components/CartaoProduto.jsx';
@@ -12,6 +12,7 @@ import produtosSimulados from '../data/produtos.json';
 
 const CATEGORIAS = ['Todos', 'Hortícolas', 'Fruta', 'Mel', 'Vinho', 'Queijo', 'Padaria', 'Outros'];
 const FILTRO_INICIAL = { q: '', categoria: 'Todos', epoca: 'Todas', modoBio: 'Todos', precoMax: '', produtor: '', localidade: '' };
+const PRODUTOS_POR_PAGINA = 12;
 const EPOCAS = ['Todas', 'Primavera', 'Verão', 'Outono', 'Inverno'];
 const MODOS_BIO = [
   { valor: 'Todos', rotulo: 'Todos' },
@@ -29,6 +30,9 @@ const ORDENACOES = [
 export default function Catalogo() {
   const [produtos, setProdutos] = useState([]);
   const [filtro, setFiltro] = useState(FILTRO_INICIAL);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const inicioResultados = useRef(null);
   const consultaProdutores = useApi(USAR_DADOS_SIMULADOS ? null : '/producers');
   const produtores = USAR_DADOS_SIMULADOS ? [...new Map(produtosSimulados.map(p => [p.produtor._id, p.produtor])).values()] : consultaProdutores.dados || [];
   const [ordenacao, setOrdenacao] = useState('original');
@@ -99,14 +103,38 @@ export default function Catalogo() {
     return [...produtos].sort(comparadores[ordenacao]);
   }, [produtos, ordenacao]);
 
-  const mudar = (campo) => (e) =>
+  const totalPaginas = Math.max(1, Math.ceil(produtosOrdenados.length / PRODUTOS_POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const inicio = (paginaAtual - 1) * PRODUTOS_POR_PAGINA;
+  const produtosPagina = produtosOrdenados.slice(inicio, inicio + PRODUTOS_POR_PAGINA);
+  const paginasVisiveis = Array.from({ length: Math.min(5, totalPaginas) }, (_, i) =>
+    Math.max(1, Math.min(paginaAtual - 2, totalPaginas - 4)) + i);
+
+  function mudarPagina(proxima) {
+    setPagina(proxima);
+    inicioResultados.current?.focus({ preventScroll: true });
+    inicioResultados.current?.scrollIntoView({ block: 'start' });
+  }
+
+  const mudar = (campo) => (e) => {
+    setPagina(1);
     setFiltro((f) => ({ ...f, [campo]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  };
 
   const temFiltros = filtro.q !== '' || filtro.categoria !== 'Todos' ||
     filtro.epoca !== 'Todas' || filtro.modoBio !== 'Todos' || filtro.precoMax !== '' || filtro.produtor !== '' || filtro.localidade !== '' || ordenacao !== 'original';
+  const filtrosAtivos = [
+    filtro.q && { campo: 'q', valor: '', texto: `Pesquisa: ${filtro.q}` },
+    filtro.categoria !== 'Todos' && { campo: 'categoria', valor: 'Todos', texto: filtro.categoria },
+    filtro.epoca !== 'Todas' && { campo: 'epoca', valor: 'Todas', texto: filtro.epoca },
+    filtro.modoBio !== 'Todos' && { campo: 'modoBio', valor: 'Todos', texto: MODOS_BIO.find(m => m.valor === filtro.modoBio)?.rotulo },
+    filtro.precoMax !== '' && { campo: 'precoMax', valor: '', texto: `Até ${filtro.precoMax} €` },
+    filtro.produtor && { campo: 'produtor', valor: '', texto: produtores.find(p => p._id === filtro.produtor)?.produtor?.nomeExploracao || produtores.find(p => p._id === filtro.produtor)?.nome || 'Produtor selecionado' },
+    filtro.localidade && { campo: 'localidade', valor: '', texto: filtro.localidade }
+  ].filter(Boolean);
 
   return (
-    <>
+    <div className="pagina-catalogo">
       <section className="catalogo-intro" aria-labelledby="titulo-catalogo">
         <p className="catalogo-intro__regiao"><MapPin size={14} aria-hidden="true" /> Alto Minho · Produção local</p>
         <h1 id="titulo-catalogo">Sabores da nossa terra.<br /><span>Direto à sua mesa.</span></h1>
@@ -122,7 +150,7 @@ export default function Catalogo() {
 
       <LeilaoDestaque />
       <div className="catalogo-cabecalho">
-        <h2>O nosso mercado</h2>
+        <h2 ref={inicioResultados} tabIndex={-1} className="catalogo-resultados-inicio">O nosso mercado</h2>
         <span><SlidersHorizontal size={15} aria-hidden="true" /> Encontre o seu próximo favorito</span>
       </div>
       <section className="filtros mb-3" aria-label="Filtros">
@@ -134,63 +162,74 @@ export default function Catalogo() {
               value={filtro.q} onChange={mudar('q')} />
           </div>
         </div>
-        <div className="filtros__grupo">
-          <label className="filtros__legenda" htmlFor="filtro-produtor">Produtor</label>
-          <select id="filtro-produtor" className="form-select" value={filtro.produtor} onChange={mudar('produtor')}>
-            <option value="">Todos os produtores</option>
-            {produtores.map(p => <option key={p._id} value={p._id}>{p.produtor?.nomeExploracao || p.nome}</option>)}
-          </select>
-          {consultaProdutores.erro && <span role="alert">Não foi possível carregar os produtores. <button type="button" className="btn btn-link p-0" onClick={consultaProdutores.recarregar}>Tentar novamente</button></span>}
-        </div>
-        <div className="filtros__grupo">
-          <label className="filtros__legenda" htmlFor="filtro-localidade">Localidade</label>
-          <input id="filtro-localidade" className="form-control" type="search" maxLength={150} placeholder="Todas as localidades" value={filtro.localidade} onChange={mudar('localidade')} />
-        </div>
-        <div className="filtros__grupo">
-          <label className="filtros__legenda" htmlFor="categoria">Categoria</label>
-          <select id="categoria" className="form-select" value={filtro.categoria} onChange={mudar('categoria')}>
-            {CATEGORIAS.map((categoria) => (
-              <option key={categoria} value={categoria}>{categoria === 'Todos' ? 'Todas as categorias' : categoria}</option>
-            ))}
-          </select>
-        </div>
-        <div className="filtros__grupo">
-          <label className="filtros__legenda" htmlFor="epoca">Época</label>
-          <select id="epoca" className="form-select" value={filtro.epoca} onChange={mudar('epoca')}>
-            {EPOCAS.map((epoca) => (
-              <option key={epoca} value={epoca}>{epoca === 'Todas' ? 'Todas as épocas' : epoca}</option>
-            ))}
-          </select>
-        </div>
-        <div className="filtros__grupo">
-          <label className="filtros__legenda" htmlFor="modo-bio">Modo biológico</label>
-          <select id="modo-bio" className="form-select" value={filtro.modoBio} onChange={mudar('modoBio')}>
-            {MODOS_BIO.map((modo) => (
-              <option key={modo.valor} value={modo.valor}>{modo.valor === 'Todos' ? 'Todos os modos' : modo.rotulo}</option>
-            ))}
-          </select>
-        </div>
-        <div className="filtros__grupo">
-          <label className="filtros__legenda" htmlFor="ordenacao">Ordenar por</label>
-          <select id="ordenacao" className="form-select" value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)}>
-            {ORDENACOES.map((opcao) => (
-              <option key={opcao.valor} value={opcao.valor}>{opcao.rotulo}</option>
-            ))}
-          </select>
-        </div>
-        <div className="filtros__grupo">
-          <label className="filtros__legenda" htmlFor="preco-max">Preço máximo (€)</label>
-          <input id="preco-max" type="number" className="form-control" min="0" step="0.01"
-            placeholder="Sem limite" value={filtro.precoMax} onChange={mudar('precoMax')} />
+        <button type="button" className="btn btn-outline-primary filtros__alternar"
+          aria-expanded={filtrosAbertos} aria-controls="filtros-avancados" onClick={() => setFiltrosAbertos(!filtrosAbertos)}>
+          <SlidersHorizontal size={18} aria-hidden="true" /> {filtrosAbertos ? 'Fechar filtros' : 'Filtros'}
+        </button>
+        <div id="filtros-avancados" className={`filtros__avancados${filtrosAbertos ? ' filtros__avancados--abertos' : ''}`}>
+          <div className="filtros__grupo">
+            <label className="filtros__legenda" htmlFor="filtro-produtor">Produtor</label>
+            <select id="filtro-produtor" className="form-select" value={filtro.produtor} onChange={mudar('produtor')}>
+              <option value="">Todos os produtores</option>
+              {produtores.map(p => <option key={p._id} value={p._id}>{p.produtor?.nomeExploracao || p.nome}</option>)}
+            </select>
+            {consultaProdutores.erro && <span role="alert">Não foi possível carregar os produtores. <button type="button" className="btn btn-link p-0" onClick={consultaProdutores.recarregar}>Tentar novamente</button></span>}
+          </div>
+          <div className="filtros__grupo">
+            <label className="filtros__legenda" htmlFor="filtro-localidade">Localidade</label>
+            <input id="filtro-localidade" className="form-control" type="search" maxLength={150} placeholder="Todas as localidades" value={filtro.localidade} onChange={mudar('localidade')} />
+          </div>
+          <div className="filtros__grupo">
+            <label className="filtros__legenda" htmlFor="categoria">Categoria</label>
+            <select id="categoria" className="form-select" value={filtro.categoria} onChange={mudar('categoria')}>
+              {CATEGORIAS.map((categoria) => (
+                <option key={categoria} value={categoria}>{categoria === 'Todos' ? 'Todas as categorias' : categoria}</option>
+              ))}
+            </select>
+          </div>
+          <div className="filtros__grupo">
+            <label className="filtros__legenda" htmlFor="epoca">Época</label>
+            <select id="epoca" className="form-select" value={filtro.epoca} onChange={mudar('epoca')}>
+              {EPOCAS.map((epoca) => (
+                <option key={epoca} value={epoca}>{epoca === 'Todas' ? 'Todas as épocas' : epoca}</option>
+              ))}
+            </select>
+          </div>
+          <div className="filtros__grupo">
+            <label className="filtros__legenda" htmlFor="modo-bio">Modo biológico</label>
+            <select id="modo-bio" className="form-select" value={filtro.modoBio} onChange={mudar('modoBio')}>
+              {MODOS_BIO.map((modo) => (
+                <option key={modo.valor} value={modo.valor}>{modo.valor === 'Todos' ? 'Todos os modos' : modo.rotulo}</option>
+              ))}
+            </select>
+          </div>
+          <div className="filtros__grupo">
+            <label className="filtros__legenda" htmlFor="preco-max">Preço máximo (€)</label>
+            <input id="preco-max" type="number" className="form-control" min="0" step="0.01"
+              placeholder="Sem limite" value={filtro.precoMax} onChange={mudar('precoMax')} />
+          </div>
         </div>
       </section>
 
+      {filtrosAtivos.length > 0 && <div className="catalogo-selecoes" aria-label="Filtros ativos">
+        {filtrosAtivos.map(f => <button type="button" key={f.campo} aria-label={`Remover filtro: ${f.texto}`}
+          onClick={() => { setFiltro(atual => ({ ...atual, [f.campo]: f.valor })); setPagina(1); }}>
+          <span>{f.texto}</span><X size={14} aria-hidden="true" />
+        </button>)}
+      </div>}
       <div className="filtros__resumo">
+        <div className="filtros__grupo filtros__ordenacao">
+          <label className="filtros__legenda" htmlFor="ordenacao">Ordenar por</label>
+          <select id="ordenacao" className="form-select" value={ordenacao} onChange={(e) => { setOrdenacao(e.target.value); setPagina(1); }}>
+            {ORDENACOES.map((opcao) => <option key={opcao.valor} value={opcao.valor}>{opcao.rotulo}</option>)}
+          </select>
+        </div>
         <span className="texto-secundario" role="status"><strong>{produtos.length}</strong> {produtos.length === 1 ? 'produto encontrado' : 'produtos encontrados'}</span>
         <button type="button" className="btn btn-link filtros__limpar" disabled={!temFiltros}
           onClick={() => {
             setFiltro(FILTRO_INICIAL);
             setOrdenacao('original');
+            setPagina(1);
           }}>
           <X size={14} aria-hidden="true" /> Limpar filtros
         </button>
@@ -200,12 +239,32 @@ export default function Catalogo() {
       {aCarregar && <p className="texto-secundario" role="status">A carregar produtos…</p>}
 
       <section className="grelha-produtos" aria-label="Produtos" aria-busy={aCarregar}>
-        {produtosOrdenados.map((p) => (
+        {produtosPagina.map((p) => (
           <CartaoProduto key={p._id} produto={p}
             onAdicionar={utilizador?.papel === 'comprador' ? () => carrinho.adicionar(p) : undefined} />
         ))}
       </section>
+      {!aCarregar && !erro && produtos.length > 0 && (
+        <div className="catalogo-paginacao">
+          <p className="catalogo-paginacao__intervalo" role="status">
+            A mostrar {inicio + 1}–{inicio + produtosPagina.length} de {produtos.length} {produtos.length === 1 ? 'produto' : 'produtos'}
+          </p>
+          {totalPaginas > 1 && <nav aria-label="Paginação dos produtos" className="catalogo-paginacao__controlos">
+            <button type="button" className="btn btn-outline-primary" disabled={paginaAtual === 1}
+              onClick={() => mudarPagina(paginaAtual - 1)}>Anterior</button>
+            <div className="catalogo-paginacao__numeros">
+              {paginasVisiveis.map(numero => <button key={numero} type="button"
+                className={`btn ${numero === paginaAtual ? 'btn-primary' : 'btn-outline-primary'}`}
+                aria-label={`Página ${numero}`} aria-current={numero === paginaAtual ? 'page' : undefined}
+                onClick={() => mudarPagina(numero)}>{numero}</button>)}
+            </div>
+            <span className="catalogo-paginacao__pagina">Página {paginaAtual} de {totalPaginas}</span>
+            <button type="button" className="btn btn-outline-primary" disabled={paginaAtual === totalPaginas}
+              onClick={() => mudarPagina(paginaAtual + 1)}>Seguinte</button>
+          </nav>}
+        </div>
+      )}
       {!aCarregar && !erro && produtos.length === 0 && <p className="texto-secundario">Nenhum produto encontrado.</p>}
-    </>
+    </div>
   );
 }

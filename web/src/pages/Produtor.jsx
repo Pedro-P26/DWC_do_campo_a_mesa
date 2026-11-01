@@ -1,7 +1,8 @@
 // Visitante: página pública do produtor
 import { Link, useParams } from 'react-router-dom';
-import { MapPin, Star } from 'lucide-react';
+import { ArrowLeft, MapPin, Star, Sprout, Package } from 'lucide-react';
 import CartaoProduto from '../components/CartaoProduto.jsx';
+import CartaoAvaliacao from '../components/CartaoAvaliacao.jsx';
 import { USAR_DADOS_SIMULADOS } from '../api/client.js';
 import { useApi } from '../hooks/useApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -18,9 +19,6 @@ export default function Produtor() {
   const produtor = USAR_DADOS_SIMULADOS ? simulados[0]?.produtor : dados?.produtor;
   const produtos = USAR_DADOS_SIMULADOS ? simulados : dados?.produtos || [];
   const detalhes = produtor?.produtor;
-  const coordenadas = detalhes?.localizacao;
-  const temCoordenadas = Number.isFinite(coordenadas?.lat) && Number.isFinite(coordenadas?.lng) &&
-    Math.abs(coordenadas.lat) <= 90 && Math.abs(coordenadas.lng) <= 180;
 
   if (!USAR_DADOS_SIMULADOS && aCarregar) return <p role="status">A carregar produtor…</p>;
   if (erro) return (
@@ -33,21 +31,20 @@ export default function Produtor() {
 
   return (
     <>
-      <Link to="/" className="d-inline-block mb-3">Voltar ao catálogo</Link>
+      <Link to="/" className="ligacao-voltar"><ArrowLeft size={16} aria-hidden="true" /> Voltar ao catálogo</Link>
       <section className="produtor-apresentacao">
+        <div className="produtor-apresentacao__identidade"><span className="produtor-apresentacao__simbolo"><Sprout size={38} aria-hidden="true" /></span><div>
         <p className="catalogo-intro__regiao">Produção local · Alto Minho</p>
         <h1>{detalhes?.nomeExploracao || produtor.nome}</h1>
         {detalhes?.localidade && <p className="produtor-apresentacao__localidade"><MapPin size={17} aria-hidden="true" />{detalhes.localidade}</p>}
-        {detalhes?.descricao && <p>{detalhes.descricao}</p>}
+        </div></div><div className="produtor-apresentacao__numeros"><div><Package size={20} aria-hidden="true" /><strong>{produtos.length}</strong><span>produtos no catálogo</span></div>
         {!USAR_DADOS_SIMULADOS && dados.avaliacaoMedia != null && (
-          <p><Star size={16} aria-hidden="true" /> {dados.avaliacaoMedia.toLocaleString('pt-PT', { maximumFractionDigits: 1 })} / 5</p>
+          <div><Star size={20} aria-hidden="true" /><strong>{dados.avaliacaoMedia.toLocaleString('pt-PT', { maximumFractionDigits: 1 })} / 5</strong><span>avaliação média</span></div>
         )}
-        {temCoordenadas && (
-          <iframe className="produtor-apresentacao__mapa" title={`Localização de ${produtor.nome}`} loading="lazy"
-            src={`https://www.openstreetmap.org/export/embed.html?bbox=${coordenadas.lng - .02},${coordenadas.lat - .015},${coordenadas.lng + .02},${coordenadas.lat + .015}&layer=mapnik&marker=${coordenadas.lat},${coordenadas.lng}`} />
-        )}
+        </div>
       </section>
-      <h2 className="h4 mb-3">Produtos de {produtor.nome}</h2>
+      {detalhes?.descricao && <section className="produtor-historia"><p className="pagina-sobretitulo">QUEM PRODUZ</p><h2>A nossa história</h2><p>{detalhes.descricao}</p></section>}
+      <div className="secao-cabecalho"><h2>Produtos de {produtor.nome}</h2><span>Diretamente da exploração</span></div>
       <section className="grelha-produtos" aria-label="Produtos do produtor">
         {produtos.map((p) => (
           <CartaoProduto key={p._id} produto={{ ...p, produtor }}
@@ -55,12 +52,12 @@ export default function Produtor() {
         ))}
       </section>
       {produtos.length === 0 && <p className="texto-secundario">Sem produtos disponíveis.</p>}
-      <section aria-labelledby="avaliacoes-produtor" className="mt-4">
+      <section aria-labelledby="avaliacoes-produtor" className="produtor-avaliacoes">
         <h2 id="avaliacoes-produtor">Avaliações do produtor</h2>
         {avaliacoes.aCarregar && <p role="status">A carregar avaliações…</p>}
         {avaliacoes.erro && <p role="alert">{avaliacoes.erro} <button className="btn btn-outline-success" onClick={avaliacoes.recarregar}>Tentar novamente</button></p>}
         {!avaliacoes.aCarregar && !avaliacoes.erro && !avaliacoes.dados?.length && <p>Ainda não há avaliações deste produtor.</p>}
-        {avaliacoes.dados?.map(r => <article key={r._id} className="card p-3 mb-3"><h3 className="h5">{r.autor?.nome || 'Comprador'} · {r.classificacao}/5</h3>{r.comentario && <p className="mb-0">{r.comentario}</p>}</article>)}
+        {avaliacoes.dados?.map(r => <CartaoAvaliacao key={r._id} avaliacao={r} />)}
       </section>
     </>
   );
