@@ -79,12 +79,61 @@ test('Catálogo, perfil, avaliações e consistência com persistência real', a
       await Review.updateOne({ produto: pao.id }, { visivel: false });
       assert.deepEqual(await (await pedir(`/reviews?produto=${pao.id}`)).json(), []);
     });
+    await t.test('Listagens calculam médias por produto e excluem avaliações ocultas ou só do produtor', async () => {
+      const produtos = await Product.create([
+        { nome: 'Artigo de classificação A', produtor: horta.id, categoria: 'Outros', preco: 3 },
+        { nome: 'Artigo de classificação B', produtor: horta.id, categoria: 'Outros', preco: 4 }
+      ]);
+      const pedidos = await Order.create([ana, joao, ana].map(comprador => ({ comprador: comprador.id,
+        produtor: horta.id, estado: 'entregue', linhas: [{ produto: produtos[0].id, nome: produtos[0].nome, quantidade: 1, precoUnit: 3 }] })));
+      let notas = [];
+      try {
+        notas = await Review.create([
+          { autor: ana.id, produto: produtos[0].id, produtor: horta.id, encomenda: pedidos[0].id, classificacao: 5 },
+          { autor: joao.id, produto: produtos[0].id, produtor: horta.id, encomenda: pedidos[1].id, classificacao: 4 },
+          { autor: ana.id, produto: produtos[0].id, produtor: horta.id, encomenda: pedidos[2].id, classificacao: 1, visivel: false },
+          { autor: ana.id, produtor: horta.id, encomenda: pedidos[2].id, classificacao: 2 }
+        ]);
+        const lista = await (await pedir('/products?q=Artigo%20de%20classifica')).json();
+        const avaliado = lista.find(p => p._id === produtos[0].id);
+        const semNotas = lista.find(p => p._id === produtos[1].id);
+        assert.equal(avaliado.avaliacaoMedia, 4.5); assert.equal(avaliado.numeroAvaliacoes, 2);
+        assert.equal(semNotas.avaliacaoMedia, null); assert.equal(semNotas.numeroAvaliacoes, 0);
+        const pagina = await (await pedir(`/producers/${horta.id}`)).json();
+        assert.equal(pagina.produtos.find(p => p._id === produtos[0].id).avaliacaoMedia, 4.5);
+        await Review.updateMany({ _id: { $in: notas.slice(0, 2).map(n => n._id) } }, { visivel: false });
+        const atualizado = (await (await pedir(`/products?produtor=${horta.id}`)).json()).find(p => p._id === produtos[0].id);
+        assert.equal(atualizado.avaliacaoMedia, null); assert.equal(atualizado.numeroAvaliacoes, 0);
+      } finally {
+        await Review.deleteMany({ _id: { $in: notas.map(n => n._id) } });
+        await Order.deleteMany({ _id: { $in: pedidos.map(p => p._id) } });
+        await Product.deleteMany({ _id: { $in: produtos.map(p => p._id) } });
+      }
+    });
     await t.test('Aprovação escrita diretamente no MongoDB notifica apenas o produtor aprovado', async () => {
       await User.collection.updateOne({ _id: horta._id }, { $set: { 'produtor.validado': false } });
       await User.collection.updateOne({ _id: horta._id }, { $set: { 'produtor.validado': true } });
       const limite = Date.now() + 5000;
       while (!eventos.some(e => e.nome === 'conta-validada') && Date.now() < limite) await new Promise(r => setTimeout(r, 25));
       assert.deepEqual(eventos.filter(e => e.nome === 'conta-validada'), [{ sala: `user:${horta.id}`, nome: 'conta-validada', dados: { id: horta.id } }]);
+    });
+    await t.test('Denúncias exigem sessão, impedem duplicação concorrente e são resolvidas pela administração', async () => {
+      const pedido = await Order.create({ comprador: ana.id, produtor: horta.id, estado: 'entregue', linhas: [{ produto: pao.id, nome: pao.nome, quantidade: 1, precoUnit: pao.preco }] });
+      const review = await Review.create({ autor: ana.id, produtor: horta.id, encomenda: pedido.id, classificacao: 4 });
+      const rota = `/reviews/${review.id}/denuncia`;
+      assert.equal((await pedir(rota, 'POST')).status, 401);
+      const rs = await Promise.all([pedir(rota, 'POST', undefined, ana), pedir(rota, 'POST', undefined, ana)]);
+      assert.deepEqual(rs.map(r => r.status).sort(), [204, 409]);
+      assert.equal((await Review.findById(review.id)).denuncias, 1);
+      assert.equal((await pedir(rota, 'POST', undefined, joao)).status, 204);
+      const publico = await (await pedir(`/reviews?produtor=${horta.id}`)).json();
+      assert(publico.every(r => !Object.hasOwn(r, 'denunciantes')));
+      const admin = { id: new mongoose.Types.ObjectId().toString(), nome: 'Admin', papel: 'admin' };
+      assert.equal((await pedir(`/admin/reviews/${review.id}`, 'PATCH', { visivel: true, resolverDenuncias: true }, admin)).status, 200);
+      assert.equal((await Review.findById(review.id)).denuncias, 0);
+      assert.equal((await pedir(rota, 'POST', undefined, ana)).status, 204);
+      await Review.updateOne({ _id: review.id }, { visivel: false });
+      assert.equal((await pedir(rota, 'POST', undefined, joao)).status, 404);
     });
     const user = u => ({ id: u.id, nome: u.nome, papel: u.papel });
     const leilao = await Auction.create({ produtor: horta.id, lote: 'Lote concorrente', precoBase: 100, incremento: 5,

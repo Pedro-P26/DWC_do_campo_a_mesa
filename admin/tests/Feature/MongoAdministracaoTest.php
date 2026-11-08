@@ -110,7 +110,7 @@ class MongoAdministracaoTest extends TestCase
     {
         $produtor = $this->conta('Horta');
         $id = $this->inserir('reviews', ['autor' => new ObjectId($this->admin->id), 'produtor' => $produtor, 'encomenda' => new ObjectId,
-            'comentario' => '<script>alert(1)</script>', 'classificacao' => 3, 'denuncias' => 2, 'visivel' => true]);
+            'comentario' => '<script>alert(1)</script>', 'classificacao' => 3, 'denuncias' => 2, 'denunciantes' => [new ObjectId($this->admin->id)], 'visivel' => true]);
         $this->actingAs($this->admin)->get('/moderacao')->assertOk()->assertSee('&lt;script&gt;', false)->assertDontSee('<script>alert(1)</script>', false)->assertSee('Horta');
         $this->patch('/moderacao/'.$id, ['decisao' => 'ocultar'])->assertRedirect();
         $doc = $this->mongo->reviews->findOne(['_id' => $id]);
@@ -120,6 +120,7 @@ class MongoAdministracaoTest extends TestCase
         $this->assertTrue($this->mongo->reviews->findOne(['_id' => $id])['visivel']);
         $this->patch('/moderacao/'.$id, ['decisao' => 'manter'])->assertRedirect();
         $this->assertSame(0, $this->mongo->reviews->findOne(['_id' => $id])['denuncias']);
+        $this->assertCount(0, $this->mongo->reviews->findOne(['_id' => $id])['denunciantes']);
         $this->get('/moderacao')->assertDontSee('&lt;script&gt;', false);
         $this->patchJson('/moderacao/'.new ObjectId, ['decisao' => 'ocultar'])->assertNotFound();
     }

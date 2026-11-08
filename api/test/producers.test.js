@@ -23,8 +23,12 @@ test('Página pública do produtor', async (t) => {
     return [{ _id: 'produto', nome: 'Kiwi' }];
   };
   Review.aggregate = async (pipeline) => {
-    assert.equal(pipeline[0].$match.produtor.toString(), id);
     assert.equal(pipeline[0].$match.visivel, true);
+    if (pipeline[0].$match.produto) {
+      assert.deepEqual(pipeline[0].$match.produto.$in, ['produto']);
+      return comAvaliacoes ? [{ _id: 'produto', media: 4.5, total: 2 }] : [];
+    }
+    assert.equal(pipeline[0].$match.produtor.toString(), id);
     return comAvaliacoes ? [{ media: 4.5 }] : [];
   };
   const app = express();
@@ -45,11 +49,16 @@ test('Página pública do produtor', async (t) => {
       const dados = await resposta.json();
       assert.equal(dados.produtor.nome, 'Produtor');
       assert.equal(dados.produtos[0].nome, 'Kiwi');
+      assert.equal(dados.produtos[0].avaliacaoMedia, 4.5);
+      assert.equal(dados.produtos[0].numeroAvaliacoes, 2);
       assert.equal(dados.avaliacaoMedia, 4.5);
     });
     await t.test('Sem avaliações, a média é null', async () => {
       comAvaliacoes = false;
-      assert.equal((await (await fetch(`${base}/${id}`)).json()).avaliacaoMedia, null);
+      const dados = await (await fetch(`${base}/${id}`)).json();
+      assert.equal(dados.avaliacaoMedia, null);
+      assert.equal(dados.produtos[0].avaliacaoMedia, null);
+      assert.equal(dados.produtos[0].numeroAvaliacoes, 0);
     });
   } finally {
     await new Promise(resolve => server.close(resolve));

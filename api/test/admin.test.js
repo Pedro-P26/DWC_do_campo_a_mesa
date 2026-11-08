@@ -34,6 +34,7 @@ test('Administração: estatísticas, validação e moderação com persistênci
     const app = express();
     app.use(express.json());
     app.use('/admin', require('../src/routes/admin'));
+    app.use('/auctions', require('../src/routes/auctions'));
     app.use(require('../src/middleware/errorHandler'));
     server = app.listen(0, '127.0.0.1');
     await once(server, 'listening');
@@ -113,6 +114,38 @@ test('Administração: estatísticas, validação e moderação com persistênci
       assert.equal(guardada.visivel, true);
       assert.equal(guardada.denuncias, 0);
       assert.deepEqual(await (await get('/reviews/denunciadas')).json(), []);
+    });
+    await t.test('Paginação limita as três listas, mantém a ordem e ajusta páginas após moderação', async () => {
+      await User.create(Array.from({ length: 7 }, (_, i) => conta('pagina-' + i, { produtor: { validado: false } })));
+      await Review.create(Array.from({ length: 7 }, (_, i) => ({ autor: pendente._id, produtor: ativo._id,
+        encomenda: new mongoose.Types.ObjectId(), classificacao: 4, comentario: 'Página ' + i, denuncias: 1 })));
+      await Auction.create(Array.from({ length: 7 }, (_, i) => ({ produtor: ativo._id, lote: 'Página ' + i,
+        estado: 'ativo', precoBase: 10, incremento: 1, iniciaEm: hoje, terminaEm: amanha })));
+      for (const caminho of ['/produtores/pendentes', '/reviews/denunciadas', '/../auctions?estado=ativo']) {
+        const separador = caminho.includes('?') ? '&' : '?';
+        const todas = await (await get(caminho)).json();
+        const primeira = await (await get(caminho + separador + 'pagina=1&limite=5')).json();
+        const segunda = await (await get(caminho + separador + 'pagina=2&limite=5')).json();
+        assert.equal(primeira.total, todas.length);
+        assert.equal(primeira.totalPaginas, 2);
+        assert.equal(primeira.dados.length, 5);
+        assert.equal(segunda.pagina, 2);
+        assert.deepEqual([...primeira.dados, ...segunda.dados].map(d => d._id), todas.map(d => d._id));
+        for (const parametros of ['pagina=0', 'pagina=-1', 'pagina=1.5', 'pagina[]=1', 'limite=51', 'limite=abc']) {
+          assert.equal((await get(caminho + separador + parametros)).status, 400);
+        }
+        const ultima = await (await get(caminho + separador + 'pagina=999&limite=5')).json();
+        assert.equal(ultima.pagina, 2);
+      }
+      const segunda = await (await get('/produtores/pendentes?pagina=2&limite=5')).json();
+      for (const p of segunda.dados) await patch('/produtores/' + p._id + '/validacao', { aprovado: true });
+      const ajustada = await (await get('/produtores/pendentes?pagina=2&limite=5')).json();
+      assert.equal(ajustada.pagina, 1);
+      assert.equal(ajustada.total, 5);
+      assert.equal(ajustada.dados.length, 5);
+      await Review.updateMany({}, { $set: { denuncias: 0 } });
+      const vazia = await (await get('/reviews/denunciadas?pagina=2&limite=5')).json();
+      assert.deepEqual(vazia, { dados: [], total: 0, pagina: 1, limite: 5, totalPaginas: 1 });
     });
   } finally {
     if (server) await new Promise(resolve => server.close(resolve));
