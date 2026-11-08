@@ -52,7 +52,7 @@
         ],
         "test:browser": [
             "Composer\\Config::disableProcessTimeout",
-            "node scripts/browser-admin.cjs"
+            "node ../api/test/e2e/admin.cjs"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

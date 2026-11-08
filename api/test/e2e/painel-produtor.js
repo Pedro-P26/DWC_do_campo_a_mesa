@@ -113,6 +113,7 @@ module.exports = async ({ spa, context, verificar, apiUrl, webUrl, errosBrowser 
     await User.updateOne({ _id: s.utilizador.id }, { $set: { 'produtor.validado': true } });
     await expect(outro.getByRole('button', { name: 'Novo produto', exact: true })).toBeEnabled();
     await expect(outro.getByRole('status').filter({ hasText: 'A sua conta de produtor foi validada.' })).toBeVisible();
-    await isolado.close(); expect(errosBrowser).toEqual([]);
+    // A verificação global de erros fica no runner, depois de todos os cenários.
+    await isolado.close();
   });
 };

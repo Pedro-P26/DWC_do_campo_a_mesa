@@ -25,18 +25,18 @@ module.exports = async ({ browser, paginas, verificar, apiUrl, webUrl, erros, pa
     await comprador.getByRole('button', { name: 'Limpar filtros' }).click();
     await expect(comprador.locator('.cartao-produto')).toHaveCount(5);
   });
-  await verificar('Página pública: guardar, recarregar, mapa e avaliações visíveis', async () => {
+  await verificar('Página pública: guardar, recarregar, localidade e avaliações visíveis', async () => {
     await produtor.goto(`${webUrl}/produtor/perfil`);
     await produtor.getByLabel('Descrição da exploração').fill('Da nossa horta para a sua mesa.');
-    await produtor.getByLabel('Latitude', { exact: true }).fill('41.767');
-    await produtor.getByLabel('Longitude', { exact: true }).fill('-8.583');
+    await produtor.getByLabel('Localidade', { exact: true }).fill('Ponte de Lima');
     await produtor.getByRole('button', { name: 'Guardar página pública' }).click();
     await expect(produtor.getByRole('status')).toHaveText('Página pública guardada.');
     await produtor.reload();
-    await expect(produtor.getByLabel('Latitude', { exact: true })).toHaveValue('41.767');
+    await expect(produtor.getByLabel('Localidade', { exact: true })).toHaveValue('Ponte de Lima');
     await produtor.getByRole('link', { name: 'Ver página pública', exact: true }).click();
     await expect(produtor.getByText('Da nossa horta para a sua mesa.', { exact: true })).toBeVisible();
-    await expect(produtor.locator('iframe')).toHaveAttribute('src', /marker=41\.767,-8\.583/);
+    await expect(produtor.getByText('Ponte de Lima', { exact: true }).first()).toBeVisible();
+    await expect(produtor.locator('iframe')).toHaveCount(0);
     await expect(produtor.getByText('Kiwi fresco e entrega pontual.', { exact: true })).toBeVisible();
     await produtor.screenshot({ path: path.join(pasta, 'pagina-publica.png'), fullPage: true });
   });

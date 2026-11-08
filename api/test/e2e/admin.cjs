@@ -6,9 +6,9 @@ const net = require('node:net');
 const { once } = require('node:events');
 const { spawn } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
-const apiRequire = createRequire(path.resolve(__dirname, '../../api/package.json'));
+const apiRequire = createRequire(path.resolve(__dirname, '../../package.json'));
 const { MongoMemoryReplSet } = apiRequire('mongodb-memory-server');
-const { io: connectSocket } = createRequire(path.resolve(__dirname, '../../web/package.json'))('socket.io-client');
+const { io: connectSocket } = createRequire(path.resolve(__dirname, '../../../web/package.json'))('socket.io-client');
 const jwt = apiRequire('jsonwebtoken');
 const mongoose = apiRequire('mongoose');
 const bcrypt = apiRequire('bcryptjs');
@@ -17,7 +17,7 @@ const { Server } = apiRequire('socket.io');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 (async () => {
-    const downloadDir = path.resolve(__dirname, '../../api/node_modules/.cache/mongodb-memory-server');
+    const downloadDir = path.resolve(__dirname, '../../node_modules/.cache/mongodb-memory-server');
     const binaryName = fs.existsSync(downloadDir) ? fs.readdirSync(downloadDir).find(name => /^mongod-.*\.exe$/.test(name)) : undefined;
     const mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 }, binary: { downloadDir, ...(binaryName ? { systemBinary: path.join(downloadDir, binaryName) } : {}) } });
     let php, browser, io, pararValidacao, produtorSocket;
@@ -54,7 +54,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
         const port = reserva.address().port; await new Promise(resolve => reserva.close(resolve));
         const base = `http://127.0.0.1:${port}`;
         php = spawn('php', ['-S', `127.0.0.1:${port}`, '-t', 'public'], {
-            cwd: path.resolve(__dirname, '..'), stdio: ['ignore', 'ignore', 'ignore'],
+            cwd: path.resolve(__dirname, '../../../admin'), stdio: ['ignore', 'ignore', 'ignore'],
             env: { ...process.env, APP_ENV: 'local', APP_DEBUG: 'false', APP_KEY: `base64:${randomBytes(32).toString('base64')}`,
                 APP_URL: base, DB_CONNECTION: 'mongodb', MONGODB_URI: mongo.getUri(), MONGODB_DATABASE: database,
                 API_URL: `http://127.0.0.1:${apiServer.address().port}`, STORAGE_HEALTH_URL: '', SESSION_DRIVER: 'file' }
@@ -80,7 +80,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
         await expect(page.locator('[data-indicador="utilizadores"]')).toHaveText('4');
         await expect(page.locator('[data-servico="api"]')).toHaveText('Operacional', { timeout: 15000 });
         await expect(page.locator('[data-servico="sockets"]')).toHaveText('Operacional');
-        const resultDir = path.resolve(__dirname, '../test-results'); fs.mkdirSync(resultDir, { recursive: true });
+        const resultDir = path.resolve(__dirname, '../../../admin/test-results'); fs.mkdirSync(resultDir, { recursive: true });
         await page.screenshot({ path: path.join(resultDir, 'admin-desktop.png'), fullPage: true });
         await Auction.updateOne({ _id: auction._id }, { $set: { 'licitacaoAtual.valor': 17, numLicitacoes: 2 } });
         await expect(page.locator('[data-leiloes]')).toContainText('17,00', { timeout: 12000 });

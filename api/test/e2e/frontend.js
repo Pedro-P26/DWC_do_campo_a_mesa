@@ -6,7 +6,7 @@ const { pathToFileURL } = require('node:url');
 const { once } = require('node:events');
 const mongoose = require('mongoose');
 const { MongoMemoryReplSet } = require('mongodb-memory-server');
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const { Server } = require('socket.io');
 const User = require('../../src/models/User');
 const Product = require('../../src/models/Product');
@@ -15,17 +15,30 @@ const Review = require('../../src/models/Review');
 const Auction = require('../../src/models/Auction');
 
 async function main() {
+  const navegador = process.argv.find(a => a.startsWith('--browser='))?.split('=')[1] || 'chromium';
+  const motor = { chromium, firefox, webkit }[navegador];
+  if (!motor) throw new Error('Navegador inválido: usar chromium, firefox ou webkit');
   process.env.JWT_SECRET = 'teste-frontend-local-base-descartavel';
   process.env.STORAGE_CONN = ''; // Uploads do teste ficam locais, mesmo com variáveis herdadas.
   process.env.JWT_EXPIRES_IN = '2h';
   const resultados = [];
+  const duracoes = [];
   const erros = [];
-  const pasta = path.resolve(__dirname, '../../test-results/frontend');
+  const pasta = path.resolve(__dirname, '../../test-results/frontend', navegador === 'chromium' ? '.' : navegador);
+  const nomeResultado = process.argv.includes('--riscos') ? 'riscos.json' : process.argv.includes('--enunciado') ? 'enunciado.json' : process.argv.includes('--painel-produtor') ? 'painel-produtor.json' : 'resultado.json';
   await fs.mkdir(pasta, { recursive: true });
   let mongo, http, io, vite, browser, pararCiclo, pararValidacao;
   async function verificar(nome, teste) {
-    await teste();
+    const inicio = Date.now();
+    try { await teste(); }
+    catch (erro) {
+      await Promise.all(browser?.contexts().flatMap((c, i) => c.pages().map((p, j) =>
+        p.screenshot({ path: path.join(pasta, `falha-${i}-${j}.png`), fullPage: true }).catch(() => {}))) || []);
+      erro.message = `${nome}: ${erro.message}`;
+      throw erro;
+    }
     resultados.push(nome);
+    duracoes.push({ nome, duracaoMs: Date.now() - inicio });
     console.log(`OK ${nome}`);
   }
   try {
@@ -53,7 +66,7 @@ async function main() {
     const webUrl = vite.resolvedUrls.local[0].replace(/\/$/, '');
     process.env.CLIENT_URL = webUrl;
     console.log(`Browser: ${webUrl}; API temporária: ${apiUrl}`);
-    browser = await chromium.launch({ headless: process.argv.includes('--headless'), slowMo: process.argv.includes('--headless') ? 0 : 80 });
+    browser = await motor.launch({ headless: process.argv.includes('--headless'), slowMo: process.argv.includes('--headless') ? 0 : 80 });
     const paginas = {};
     for (const [papel, email] of Object.entries({ comprador: 'tasca@exemplo.pt', admin: 'admin@exemplo.pt', produtor: 'horta@exemplo.pt' })) {
       const contexto = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -69,6 +82,33 @@ async function main() {
       paginas[papel] = pagina;
     }
     const pagina = paginas.comprador;
+    if (process.argv.includes('--localizacao')) {
+      await require('./localizacao')({ browser, verificar, webUrl, pasta, erros });
+      assert.deepEqual(erros, []);
+      await fs.writeFile(path.join(pasta, 'localizacao.json'), JSON.stringify({ sucesso: true, navegador, testes: resultados, duracoes, erros }, null, 2));
+      return;
+    }
+    if (process.argv.includes('--leilao-destaque')) {
+      await require('./leilao-destaque')({ browser, verificar, webUrl, pasta, erros });
+      assert.deepEqual(erros, []);
+      await fs.writeFile(path.join(pasta, 'leilao-destaque.json'), JSON.stringify({ sucesso: true, navegador, testes: resultados, duracoes, erros }, null, 2));
+      return;
+    }
+    const testarPaginacao = () => require('./paginacao')({ browser, verificar, webUrl, pasta, erros });
+    if (process.argv.includes('--paginacao')) {
+      await testarPaginacao();
+      assert.deepEqual(erros, []);
+      await fs.writeFile(path.join(pasta, 'paginacao.json'), JSON.stringify({ sucesso: true, navegador, testes: resultados, duracoes, erros }, null, 2));
+      return;
+    }
+    const testarRiscos = () => require('./riscos')({ browser, verificar, apiUrl, webUrl, erros, pasta });
+    if (process.argv.includes('--riscos')) {
+      await testarRiscos();
+      assert.deepEqual(erros, []);
+      await fs.writeFile(path.join(pasta, nomeResultado), JSON.stringify({ sucesso: true, navegador, testes: resultados, duracoes, erros, executadoEm: new Date().toISOString() }, null, 2));
+      console.log(`${resultados.length} cenários adicionais passaram em ${navegador}.`);
+      return;
+    }
     const testarProdutor = () => require('./painel-produtor')({ spa: paginas.produtor, context: paginas.produtor.context(), verificar, apiUrl, webUrl, errosBrowser: erros });
     if (process.argv.includes('--painel-produtor')) {
       await testarProdutor();
@@ -76,15 +116,35 @@ async function main() {
       await fs.writeFile(path.join(pasta, 'painel-produtor.json'), JSON.stringify({ sucesso: true, testes: resultados, erros }, null, 2));
       return;
     }
+    const testarEnunciado = () => require('./enunciado')({ browser, paginas, verificar, apiUrl, webUrl, erros, pasta, io });
+    if (process.argv.includes('--enunciado')) {
+      await testarEnunciado();
+      assert.deepEqual(erros, []);
+      await fs.writeFile(path.join(pasta, 'enunciado.json'), JSON.stringify({ sucesso: true, testes: resultados, duracoes, erros, executadoEm: new Date().toISOString() }, null, 2));
+      console.log(`${resultados.length} testes do enunciado passaram. Evidências: ${pasta}`);
+      return;
+    }
+    await testarPaginacao();
     await verificar('Detalhes do produto: acesso público, avaliações e adicionar ao carrinho', async () => {
       const contexto = await browser.newContext({ viewport: { width: 375, height: 900 } });
       const publico = await contexto.newPage();
       publico.on('pageerror', e => erros.push(e.message));
       await publico.bringToFront();
       await publico.goto(webUrl);
+      const kiwiCatalogo = publico.locator('.cartao-produto').filter({ has: publico.getByRole('heading', { name: 'Kiwi Hayward', exact: true }) });
+      await expect(kiwiCatalogo.locator('.cartao-produto__avaliacao')).toHaveAccessibleName('5 de 5, 1 avaliação');
+      const alternarFiltros = publico.getByRole('button', { name: 'Filtros', exact: true });
+      await expect(alternarFiltros).toHaveAttribute('aria-expanded', 'false');
+      await expect(publico.getByLabel('Categoria', { exact: true })).toBeHidden();
+      await alternarFiltros.click();
+      await publico.getByLabel('Categoria', { exact: true }).selectOption('Fruta');
+      await expect(publico.locator('.cartao-produto')).toHaveCount(1);
+      await publico.getByRole('button', { name: 'Limpar filtros', exact: true }).click();
+      await publico.getByRole('button', { name: 'Fechar filtros', exact: true }).click();
+      await expect(publico.getByLabel('Categoria', { exact: true })).toBeHidden();
       await publico.getByRole('link', { name: 'Ver detalhes de Kiwi Hayward', exact: true }).click();
       await expect(publico.getByRole('heading', { name: 'Kiwi Hayward', exact: true })).toBeVisible();
-      await expect(publico.getByText('300 kg em stock', { exact: true })).toBeVisible();
+      await expect(publico.getByText('300 kg disponíveis', { exact: true })).toBeVisible();
       await expect(publico.getByText('Kiwi fresco e entrega pontual.', { exact: true })).toBeVisible();
       await expect(publico.getByRole('link', { name: 'Registar para encomendar' })).toBeVisible();
       await expect(publico.getByRole('button', { name: 'Adicionar ao carrinho' })).toHaveCount(0);
@@ -235,6 +295,7 @@ async function main() {
       assert.equal(mantida.visivel, true);
       assert.equal(mantida.denuncias, 0);
     });
+    await require('./admin-paginacao')({ paginas, verificar, webUrl, pasta });
     await require('./prioridades')({ browser, paginas, verificar, apiUrl, webUrl, erros, pasta });
     const leilao = await Auction.findOne({ estado: 'ativo' });
     const produtor = await User.findOne({ email: 'horta@exemplo.pt' });
@@ -279,6 +340,8 @@ async function main() {
       });
     }
     await testarProdutor();
+    await testarEnunciado();
+    await testarRiscos();
     await verificar('Sem erros JavaScript no browser', async () => assert.deepEqual(erros, []));
     await admin.setViewportSize({ width: 1280, height: 900 });
     await admin.goto(`${webUrl}/admin`);
@@ -287,14 +350,14 @@ async function main() {
     await pagina.goto(`${webUrl}/carrinho`);
     await pagina.getByLabel('Receber os produtos').selectOption('entrega');
     await pagina.screenshot({ path: path.join(pasta, 'checkout-mobile.png'), fullPage: true });
-    await fs.writeFile(path.join(pasta, 'resultado.json'), JSON.stringify({ sucesso: true, testes: resultados, paginas: 70, larguras: [320, 375, 768, 1024, 1280], erros }, null, 2));
+    await fs.writeFile(path.join(pasta, 'resultado.json'), JSON.stringify({ sucesso: true, navegador, testes: resultados, duracoes, paginas: 70, larguras: [320, 375, 768, 1024, 1280], erros, executadoEm: new Date().toISOString() }, null, 2));
     console.log(`${resultados.length} testes passaram. Evidências: ${pasta}`);
     if (process.argv.includes('--keep-open')) {
       console.log('Browser aberto para inspeção. Feche o browser para terminar os servidores temporários.');
       await once(browser, 'disconnected');
     }
   } catch (erro) {
-    await fs.writeFile(path.join(pasta, 'resultado.json'), JSON.stringify({ sucesso: false, testes: resultados, erro: erro.stack }, null, 2));
+    await fs.writeFile(path.join(pasta, nomeResultado), JSON.stringify({ sucesso: false, navegador, testes: resultados, duracoes, erros, erro: erro.stack, executadoEm: new Date().toISOString() }, null, 2));
     throw erro;
   } finally {
     pararCiclo?.();
