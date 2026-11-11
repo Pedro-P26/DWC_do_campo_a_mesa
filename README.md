@@ -1,160 +1,208 @@
-# Do Campo à Mesa · código base
+# Do Campo à Mesa
 
-Mercado digital de produtores locais com leilões em tempo real.
-Trabalho prático individual de **Desenvolvimento Web e para a Cloud** (MEI · IPVC–ESTG), 7 semanas.
+Mercado digital de produtores locais, desenvolvido em React, Node.js e MongoDB, com encomendas e leilões em tempo real. Inclui um backoffice de administração em Laravel.
 
-Este repositório é um **ponto de partida**. A infraestrutura já está montada, com servidor, ligação à base de dados, routing, estilos, autenticação por token e sockets. As funcionalidades estão marcadas com `TODO (Passo N)`, e os endpoints por fazer respondem `501 Not Implemented`.
+Trabalho prático individual de Desenvolvimento Web e para a Cloud, do Mestrado em Engenharia Informática do IPVC–ESTG.
+
+## Funcionalidades
+
+- Catálogo público com pesquisa por produto, ingrediente e produtor, categorias, filtros de localidade, época, modo de produção e preço máximo, ordenação e paginação.
+- Página pública do produtor com apresentação da exploração, produtos, avaliações e mapa. As coordenadas permitem marcar a exploração. Na sua ausência, o mapa pesquisa a localidade em Portugal.
+- Registo de compradores e produtores, login, sessão persistente e acesso por papel. A publicação de produtos e leilões exige aprovação do produtor.
+- Carrinho com controlo de quantidades, levantamento ou entrega, uma encomenda por produtor e reserva de stock.
+- Acompanhamento das encomendas e notificações de alteração de estado em tempo real.
+- Avaliações de produtos e produtores após a entrega, denúncias e moderação.
+- Painel do produtor com gestão de produtos, fotografias, preços e stock, edição da exploração, indicadores de vendas e criação de leilões.
+- Leilões com contagem sincronizada, presença, histórico, validação de propostas no servidor e criação da encomenda do vencedor.
+- Painel React de administração com aprovação/rejeição de produtores, moderação e listas paginadas. Os leilões e indicadores são atualizados automaticamente a cada cinco segundos enquanto a página está visível.
+- Backoffice Laravel ligado à mesma base MongoDB, com gestão, consultas e monitorização dos serviços.
+- Interface Mobile First, navegação adaptada ao papel e apresentação para computador e telemóvel.
 
 ## Estrutura
 
-```
-do-campo-a-mesa/
-├── api/                      Node.js · Express · MongoDB · Socket.io
-│   ├── openapi.yaml          Passo 5: especificação OpenAPI (Swagger UI em /api-docs)
-│   └── src/
-│       ├── server.js         HTTP + Socket.io
-│       ├── app.js            Express: middleware, rotas, Swagger
-│       ├── config/db.js      ligação ao MongoDB
-│       ├── middleware/       auth.js (JWT + papéis), errorHandler.js
-│       ├── models/           User, Product, Order, Auction, Bid, Review (Passo 4)
-│       ├── routes/           auth, products, producers, orders, auctions, reviews, admin (Passo 3)
-│       ├── sockets/          index.js (autenticação), leiloes.js (Passo 7)
-│       ├── services/         imagens.js: storage na Cloud (Passo 8)
-│       └── seed/seed.js      dados de exemplo
-├── web/                      React (Vite) · Bootstrap 5 · SASS
-│   └── src/
-│       ├── App.jsx           rotas (visitante, comprador, produtor, admin)
-│       ├── api/client.js     pedidos à API com o token JWT
-│       ├── context/          AuthContext, CarrinhoContext (estado global)
-│       ├── hooks/            useLeilao (Socket.io), useNotificacoes
-│       ├── components/       Navbar, CartaoProduto, EstadoEncomenda, RotaProtegida…
-│       ├── pages/            Catalogo, Produtor, Leiloes, SalaLeilao, Carrinho, Encomendas, …
-│       ├── styles/           _variables, _mixins (Mobile First), _catalogo, main.scss
-│       └── data/             produtos.json: dados simulados (semana 2)
-├── admin/                    PHP · Laravel · Blade (base do backoffice)
-└── docs/
-    └── relatorio.md          estrutura sugerida para o relatório
-```
+| Pasta | Conteúdo |
+|---|---|
+| `api/` | API REST Express, modelos Mongoose, autenticação JWT, Socket.io e dados iniciais |
+| `web/` | SPA React/Vite, componentes, páginas e estilos Bootstrap/SASS |
+| `admin/` | Backoffice Laravel, Blade e integração MongoDB |
+| `api/test/e2e/` | Testes Playwright da SPA e do Laravel |
+| `api/test/interface/` | Testes de interface com respostas simuladas |
+| `docs/` | Estrutura do relatório |
 
-## Pré-requisitos
+## Requisitos
 
-O backoffice PHP de administração tem uma base Laravel independente em [`admin/`](admin/README.md). Para instalar e executar: `cd admin`, `composer run setup` e `composer run dev` (PHP 8.3+ e Composer 2). Abre em <http://127.0.0.1:8000>; a autenticação e a integração de dados ficam para uma fase posterior.
+- Node.js 20.19 ou superior e npm.
+- MongoDB Atlas ou MongoDB local configurado como replica set. As transações dos leilões exigem um replica set.
+- Para o backoffice, PHP 8.3 ou superior, Composer 2 e as extensões exigidas por `composer check-platform-reqs`, incluindo `mongodb`. Consultar [admin/README.md](admin/README.md).
+- Ligação à Internet para apresentar os mapas Google Maps.
 
-- Node.js 20 ou superior
-- MongoDB local, ou um cluster gratuito no [MongoDB Atlas](https://www.mongodb.com/atlas)
+## Instalação e execução local
 
-## Arranque
+Executar os comandos a partir da raiz do repositório, em terminais separados.
 
-```bash
-# API
+### API
+
+Executar em PowerShell na primeira instalação.
+
+```powershell
 cd api
-cp .env.example .env          # preencher MONGODB_URI e JWT_SECRET
 npm install
-npm run seed                  # opcional: dados de exemplo (password: password123)
-npm run dev                   # http://localhost:3000  ·  docs em /api-docs
-
-# SPA (noutro terminal)
-cd web
-cp .env.example .env
-npm install
-npm run dev                   # http://localhost:5173
+Copy-Item .env.example .env
 ```
 
-Com `VITE_USAR_DADOS_SIMULADOS=true`, o catálogo funciona sem API, a partir de `src/data/produtos.json`. Quando a API estiver pronta, mude para `false`.
+Configurar a ligação MongoDB e um `JWT_SECRET` próprio em `api/.env`, usando os campos seguintes.
 
-### Utilizadores de exemplo (`npm run seed`)
+```dotenv
+PORT=3000
+MONGODB_URI=mongodb://127.0.0.1:27017/do-campo-a-mesa?replicaSet=rs0
+JWT_SECRET=substituir-por-um-segredo-longo-e-aleatorio
+JWT_EXPIRES_IN=2h
+CLIENT_URL=http://localhost:5173
+STORAGE_CONN=
+STORAGE_CONTAINER=produtos
+```
 
-Todos os utilizadores têm a password `password123`.
+Para Atlas, substituir o URI pelo fornecido pelo cluster e indicar a base de dados pretendida. A máquina tem de estar autorizada no acesso de rede do Atlas.
+
+```powershell
+npm run dev
+```
+
+API em <http://localhost:3000/api> e Swagger UI em <http://localhost:3000/api-docs>. O comando `npm start` executa o servidor sem reinício automático.
+
+### Aplicação web
+
+Executar os comandos seguintes na primeira instalação.
+
+```powershell
+cd web
+npm install
+Copy-Item .env.example .env
+```
+
+Preencher os campos seguintes em `web/.env`.
+
+```dotenv
+VITE_API_URL=http://localhost:3000
+VITE_USAR_DADOS_SIMULADOS=false
+```
+
+```powershell
+npm run dev
+```
+
+Abrir <http://localhost:5173>. Para validar a compilação, executar `npm run build` em `web/`.
+
+O modo `VITE_USAR_DADOS_SIMULADOS=true` permite consultar o catálogo com dados do ficheiro JSON. Os fluxos de autenticação, compras e leilões usam a API.
+
+### Backoffice Laravel
+
+```powershell
+cd admin
+composer run setup
+```
+
+Configurar o `admin/.env` para usar a mesma base MongoDB da API, seguindo [admin/README.md](admin/README.md). Arrancar o backoffice com os comandos seguintes.
+
+```powershell
+php artisan config:clear
+composer run dev
+```
+
+Abrir <http://127.0.0.1:8000> com uma conta de administrador. Nas instalações seguintes, usar `composer install`. O comando `setup` destina-se à instalação inicial e gera a chave da aplicação.
+
+## Dados iniciais
+
+Os comandos seguintes são opcionais e executam-se em `api/`.
+
+| Comando | Comportamento |
+|---|---|
+| `npm run seed` | Apaga as seis coleções da base configurada e recria os dados de exemplo, incluindo avaliações |
+| `npm run seed:testes` | Acrescenta contas e produtos de exemplo, preenche imagens e carrega avaliações |
+| `npm run seed:avaliacoes` | Acrescenta avaliações, denúncias e encomendas associadas aos produtos existentes, sem alterar stock ou preços |
+
+**Executar `npm run seed` apenas numa base que possa ser recriada.** Não é necessário voltar a executar os dados iniciais para arrancar uma instalação que já tenha dados.
+
+O carregamento das avaliações pode ser repetido sem duplicações e preserva decisões de moderação anteriores.
+
+O comando `npm run seed` cria as contas seguintes com a palavra-passe `password123`.
 
 | Papel | Email |
 |---|---|
-| admin | admin@exemplo.pt |
-| produtor | horta@exemplo.pt |
-| produtor | mel@exemplo.pt |
-| comprador | tasca@exemplo.pt |
+| Administrador | admin@exemplo.pt |
+| Produtor | horta@exemplo.pt |
+| Produtor | mel@exemplo.pt |
+| Comprador | tasca@exemplo.pt |
 
-O seed cria também 5 produtos e um leilão ativo com 30 minutos de duração.
+As contas adicionais de `seed:testes` usam `Testes123!`. As contas criadas pelo carregamento de avaliações usam `DemoAvaliacoes123!`. Estes dados destinam-se ao desenvolvimento.
 
-Atenção: o seed **apaga** as coleções de utilizadores, produtos e leilões antes de inserir os dados.
+## Localização dos produtores
 
-### Verificar que está tudo a funcionar
+Em **Painel do produtor → Editar página pública**, preencher a localidade e, opcionalmente, latitude e longitude. Ambos os campos de coordenadas têm de ser preenchidos em conjunto. Ao deixá-los vazios, a localização exata é removida e o mapa passa a mostrar a localidade.
 
-| Pedido | Resposta esperada |
-|---|---|
-| `GET http://localhost:3000/api/health` | `200 { "estado": "ok" }` |
-| `GET http://localhost:3000/api/products` | `200` com a lista de produtos |
-| `http://localhost:3000/api-docs` | Swagger UI |
-| `GET /api/admin/estatisticas` sem token | `401` (o middleware de autenticação está ativo) |
-| Endpoints ainda por implementar | `501 { "erro": "Por implementar", "descricao": "…" }` |
+O mapa é incorporado na página pública do produtor e nos detalhes dos seus produtos através do Google Maps. A apresentação depende da disponibilidade desse serviço. A ligação “Abrir no Google Maps” permite consultar a mesma localização numa janela separada.
 
-## Notas da implementação
+## Imagens e configuração
 
-### API (`api/`): Node.js · Express · MongoDB · Socket.io
+A API aceita JPEG, PNG e WebP até 5 MB. Sem `STORAGE_CONN`, guarda as imagens em `api/uploads/`. Com a ligação Azure Blob Storage configurada, guarda-as no container indicado por `STORAGE_CONTAINER`.
 
-**Já funciona:**
+A SPA usa o endereço de `VITE_API_URL` durante a compilação. O domínio permitido pela API e pelos sockets é definido em `CLIENT_URL`. Os ficheiros `.env`, os uploads, as dependências e os resultados de testes ficam fora do Git.
 
-- arranque do servidor HTTP partilhado pela API REST e pelo Socket.io;
-- ligação ao MongoDB, configuração por `.env` (ver `.env.example`) e tratamento centralizado de erros (`400` para validação, `500` para o resto);
-- middleware `auth(...papeis)`: valida o token JWT e o papel do utilizador (`401` sem token, `403` sem permissão);
-- Swagger UI em `/api-docs`, com o recurso `/products` documentado como exemplo;
-- sockets: autenticação com o mesmo JWT da API, sala pessoal por utilizador, salas por leilão e contagem de participantes;
-- serviço de upload de imagens para Azure Blob Storage (`services/imagens.js`);
-- script `npm run seed` com dados de exemplo.
+## Testes
 
-**Base para rever:**
+Executar as verificações seguintes em `api/`.
 
-- modelos User, Product, Order, Auction, Bid e Review, a rever no Passo 4 (embedding vs linking, índices).
-
-**Por fazer:**
-
-- as rotas estão todas definidas, mas só a pesquisa de produtos (`GET /api/products`) está implementada; as restantes respondem `501` com um comentário a explicar o que falta;
-- o registo e o login (Passo 6);
-- a licitação atómica nos leilões (Passo 7), com a solução indicada em comentário em `sockets/leiloes.js`.
-
-### SPA (`web/`): React (Vite) · Bootstrap 5 · SASS
-
-**Já funciona:**
-
-- rotas para os 4 intervenientes (visitante, comprador, produtor, administrador), com páginas protegidas por papel (`RotaProtegida`);
-- menu que se adapta ao utilizador autenticado;
-- estado global da sessão (`AuthContext`) e do carrinho (`CarrinhoContext`);
-- catálogo com dados simulados (pesquisa, categorias e filtro biológico); com `VITE_USAR_DADOS_SIMULADOS=false` passa a usar a API;
-- ligação em tempo real à sala de leilão (hook `useLeilao`);
-- SASS com as variáveis do tema, o mixin Mobile First `a-partir-de()` e a grelha do catálogo com 3 breakpoints (768, 1024 e 1280 px).
-
-**Por fazer:**
-
-- as páginas ainda por fazer mostram uma caixa tracejada **"Por implementar (Passo N)"** que diz o que falta.
-
-### Onde procurar o trabalho a fazer
-
-Há 25 marcadores `TODO (Passo N)` no código, ligados aos passos da apresentação. Para os listar todos:
-
-```bash
-grep -rn "TODO" api/src api/openapi.yaml web/src
+```powershell
+npm test
+npm run docs:validate
+npm run test:e2e
 ```
 
-### Sugestão para distribuir o código
+- `npm test` verifica a API, persistência, autorizações, stock, avaliações e concorrência com MongoDB temporário.
+- `npm run docs:validate` valida a especificação OpenAPI.
+- `npm run test:e2e` verifica a SPA, API e Socket.io com Playwright, incluindo responsividade. Os serviços e a base de dados são temporários.
 
-Colocar este código num repositório GitHub marcado como **template**. Cada aluno cria a sua cópia com *Use this template*, partilha-a com o docente e trabalha nela durante as 7 semanas.
+A primeira execução Playwright exige a instalação do Chromium.
 
-## O que já está feito e o que falta
+```powershell
+npx playwright install chromium
+```
 
-| Passo | Semana | Já feito | Por fazer (`TODO`) |
-|---|---|---|---|
-| 1 · Frontend | 1 | Bootstrap + SASS com variáveis, mixin `a-partir-de()` e grelha do catálogo | 3 breakpoints em todas as páginas, estilos dos ecrãs restantes |
-| 2 · SPA | 2 | Routing, rotas protegidas por papel, contexto do carrinho e da sessão, catálogo | Páginas do produtor, leilões, painéis |
-| 3 · API REST | 3 | Todas as rotas definidas; `GET /api/products` implementado | Restantes endpoints (respondem 501) |
-| 4 · MongoDB | 3 | Schemas base | Rever embedding vs linking, índices, avaliações |
-| 5 · Swagger | 4 | Swagger UI e documentação de `/products` | Documentar os restantes recursos |
-| 6 · Segurança | 4 | Middleware `auth(...papeis)` | Registo e login (bcrypt + JWT), formulários |
-| 7 · Tempo real | 5 | Autenticação dos sockets, salas, presença, hook `useLeilao` | Licitação atómica, contagem decrescente, notificações |
-| 8 · Cloud | 6 | Serviço de upload para Azure Blob Storage | Deployment (PaaS), variáveis de ambiente, HTTPS |
+As verificações específicas podem ser executadas em `api/`.
 
-Na semana 7 ficam os testes, o relatório (`docs/relatorio.md`) e o vídeo.
+```powershell
+npm run test:e2e:paginacao
+npm run test:e2e:localizacao
+npm run test:e2e:enunciado
+npm run test:e2e:riscos
+npm run test:e2e:leilao-destaque
+npm run test:browser:carrinho-desktop
+npm run test:e2e:admin
+npm run test:e2e:navegadores
+npm run test:e2e:todos
+```
 
-## Regras do repositório
+O teste de localização verifica o mapa do produtor e a indicação da localidade. O comando `test:e2e:navegadores` executa a suite em Chromium, Firefox e WebKit e exige os respetivos navegadores instalados. `test:e2e:todos` inclui a SPA, o carrinho e o backoffice Laravel.
 
-- Faça *commits* pequenos e frequentes, com mensagens claras. O histórico é considerado na avaliação.
-- O ficheiro `.env` nunca vai para o Git; use `.env.example` como modelo.
-- Declare no relatório as bibliotecas e os assistentes de IA que usar.
+Executar as verificações seguintes em `admin/`.
+
+```powershell
+composer test
+composer test:mongodb
+composer test:browser
+```
+
+As verificações MongoDB e Playwright do Laravel usam bases temporárias e exigem as dependências de `api/` e `web/` instaladas. Os resultados ficam em `api/test-results/` e `admin/test-results/`.
+
+## Estado da entrega
+
+A implementação local inclui a SPA, API documentada, autenticação, persistência, leilões, notificações e backoffice Laravel.
+
+A entrega exige ainda os elementos seguintes.
+
+- Publicação da SPA e API na Cloud, com HTTPS, WebSockets e endereços públicos.
+- Armazenamento das imagens na Cloud e verificação das rotas internas após publicação.
+- Relatório final com arquitetura, decisões técnicas, consistência dos leilões, resultados dos testes, custos e declaração das ferramentas e IA utilizadas.
+- Vídeo de demonstração e preparação da defesa.
+
+A estrutura do relatório encontra-se em [docs/relatorio.md](docs/relatorio.md).
