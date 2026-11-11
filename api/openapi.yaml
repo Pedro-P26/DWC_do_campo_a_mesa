@@ -420,7 +420,7 @@ paths:
       tags:
         - Produtores
       summary: 'Atualizar a página pública do próprio produtor'
-      description: 'Apenas dados públicos; não altera papel, validação ou rejeição. Uma conta pendente também pode preparar a página. Coordenadas null retiram o mapa.'
+      description: 'Atualiza os dados públicos da exploração. Uma conta pendente também pode preparar a página. Enviar localizacao=null remove as coordenadas exatas e a aplicação passa a mostrar o mapa da localidade.'
       security:
         - bearerAuth: []
       requestBody:
@@ -444,6 +444,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '500':
           $ref: '#/components/responses/InternalError'
   /orders:
@@ -1190,6 +1192,10 @@ components:
               type: string
               format: email
               description: 'Incluído apenas nas respostas do administrador.'
+            createdAt:
+              type: string
+              format: date-time
+              description: 'Data de registo incluída na lista administrativa de produtores pendentes.'
     UserPublic:
       allOf:
         -
@@ -1691,6 +1697,7 @@ components:
           properties:
             licitacoes:
               type: array
+              maxItems: 20
               items:
                 $ref: '#/components/schemas/Bid'
     ReviewInput:
