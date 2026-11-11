@@ -1,7 +1,7 @@
 // Visitante: catálogo com pesquisa e filtros
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Leaf, MapPin, Search, SlidersHorizontal, Sprout, X } from 'lucide-react';
+import { ArrowUpRight, MapPin, Search, SlidersHorizontal, X } from 'lucide-react';
 import CartaoProduto from '../components/CartaoProduto.jsx';
 import LeilaoDestaque from '../components/LeilaoDestaque.jsx';
 import { useApi } from '../hooks/useApi.js';
@@ -133,27 +133,22 @@ export default function Catalogo() {
     filtro.localidade && { campo: 'localidade', valor: '', texto: filtro.localidade }
   ].filter(Boolean);
 
+  const filtrosAdicionais = filtrosAtivos.filter(f => f.campo !== 'q' && f.campo !== 'categoria').length;
+
   return (
     <div className="pagina-catalogo">
       <section className="catalogo-intro" aria-labelledby="titulo-catalogo">
-        <p className="catalogo-intro__regiao"><MapPin size={14} aria-hidden="true" /> Alto Minho · Produção local</p>
-        <h1 id="titulo-catalogo">Sabores da nossa terra.<br /><span>Direto à sua mesa.</span></h1>
-        <p className="catalogo-intro__descricao">Da horta, do forno e da quinta. Descubra os produtos e quem os produz.</p>
-        <div className="catalogo-intro__rodape">
-          <div className="catalogo-intro__valores">
-            <span><Sprout size={17} aria-hidden="true" /> Produtores locais</span>
-            <span><Leaf size={17} aria-hidden="true" /> Sabores da época</span>
-          </div>
-          <Link to="/leiloes" className="catalogo-intro__leiloes">Explorar leilões <ArrowUpRight size={17} aria-hidden="true" /></Link>
+        <div>
+          <p className="catalogo-intro__regiao"><MapPin size={14} aria-hidden="true" /> Alto Minho · Produção local</p>
+          <h1 id="titulo-catalogo">Sabores da nossa terra.</h1>
+          <p className="catalogo-intro__descricao">Da horta, do forno e da quinta, diretamente à sua mesa.</p>
         </div>
+        <Link to="/leiloes" className="catalogo-intro__leiloes">Explorar leilões <ArrowUpRight size={17} aria-hidden="true" /></Link>
       </section>
 
       <LeilaoDestaque />
-      <div className="catalogo-cabecalho">
-        <h2 ref={inicioResultados} tabIndex={-1} className="catalogo-resultados-inicio">O nosso mercado</h2>
-        <span><SlidersHorizontal size={15} aria-hidden="true" /> Encontre o seu próximo favorito</span>
-      </div>
-      <section className="filtros mb-3" aria-label="Filtros">
+      <h2 ref={inicioResultados} tabIndex={-1} className="visually-hidden catalogo-resultados-inicio">Produtos</h2>
+      <section className="filtros" aria-label="Filtros">
         <div className="filtros__grupo filtros__pesquisa">
           <label className="filtros__legenda" htmlFor="pesquisa">Pesquisar produtos</label>
           <div className="filtros__campo-pesquisa">
@@ -164,7 +159,9 @@ export default function Catalogo() {
         </div>
         <button type="button" className="btn btn-outline-primary filtros__alternar"
           aria-expanded={filtrosAbertos} aria-controls="filtros-avancados" onClick={() => setFiltrosAbertos(!filtrosAbertos)}>
-          <SlidersHorizontal size={18} aria-hidden="true" /> {filtrosAbertos ? 'Fechar filtros' : 'Filtros'}
+          <SlidersHorizontal size={18} aria-hidden="true" /> {filtrosAbertos ? 'Fechar filtros' : 'Mais filtros'}
+          {filtrosAdicionais > 0 &&
+            <span className="filtros__contador" aria-label={filtrosAdicionais + (filtrosAdicionais === 1 ? ' filtro adicional ativo' : ' filtros adicionais ativos')}>{filtrosAdicionais}</span>}
         </button>
         <div id="filtros-avancados" className={`filtros__avancados${filtrosAbertos ? ' filtros__avancados--abertos' : ''}`}>
           <div className="filtros__grupo">
@@ -178,14 +175,6 @@ export default function Catalogo() {
           <div className="filtros__grupo">
             <label className="filtros__legenda" htmlFor="filtro-localidade">Localidade</label>
             <input id="filtro-localidade" className="form-control" type="search" maxLength={150} placeholder="Todas as localidades" value={filtro.localidade} onChange={mudar('localidade')} />
-          </div>
-          <div className="filtros__grupo">
-            <label className="filtros__legenda" htmlFor="categoria">Categoria</label>
-            <select id="categoria" className="form-select" value={filtro.categoria} onChange={mudar('categoria')}>
-              {CATEGORIAS.map((categoria) => (
-                <option key={categoria} value={categoria}>{categoria === 'Todos' ? 'Todas as categorias' : categoria}</option>
-              ))}
-            </select>
           </div>
           <div className="filtros__grupo">
             <label className="filtros__legenda" htmlFor="epoca">Época</label>
@@ -210,6 +199,14 @@ export default function Catalogo() {
           </div>
         </div>
       </section>
+      <nav className="catalogo-categorias" aria-label="Categorias dos produtos">
+        {CATEGORIAS.map(categoria => <button key={categoria} type="button"
+          aria-pressed={filtro.categoria === categoria}
+          onClick={() => {
+            setFiltro(atual => ({ ...atual, categoria }));
+            setPagina(1);
+          }}>{categoria}</button>)}
+      </nav>
 
       {filtrosAtivos.length > 0 && <div className="catalogo-selecoes" aria-label="Filtros ativos">
         {filtrosAtivos.map(f => <button type="button" key={f.campo} aria-label={`Remover filtro: ${f.texto}`}
@@ -218,21 +215,21 @@ export default function Catalogo() {
         </button>)}
       </div>}
       <div className="filtros__resumo">
-        <div className="filtros__grupo filtros__ordenacao">
-          <label className="filtros__legenda" htmlFor="ordenacao">Ordenar por</label>
-          <select id="ordenacao" className="form-select" value={ordenacao} onChange={(e) => { setOrdenacao(e.target.value); setPagina(1); }}>
-            {ORDENACOES.map((opcao) => <option key={opcao.valor} value={opcao.valor}>{opcao.rotulo}</option>)}
-          </select>
-        </div>
         <span className="texto-secundario" role="status"><strong>{produtos.length}</strong> {produtos.length === 1 ? 'produto encontrado' : 'produtos encontrados'}</span>
-        <button type="button" className="btn btn-link filtros__limpar" disabled={!temFiltros}
+        {temFiltros && <button type="button" className="btn btn-link filtros__limpar"
           onClick={() => {
             setFiltro(FILTRO_INICIAL);
             setOrdenacao('original');
             setPagina(1);
           }}>
           <X size={14} aria-hidden="true" /> Limpar filtros
-        </button>
+        </button>}
+        <div className="filtros__grupo filtros__ordenacao">
+          <label className="filtros__legenda" htmlFor="ordenacao">Ordenar por</label>
+          <select id="ordenacao" className="form-select" value={ordenacao} onChange={e => { setOrdenacao(e.target.value); setPagina(1); }}>
+            {ORDENACOES.map(opcao => <option key={opcao.valor} value={opcao.valor}>{opcao.rotulo}</option>)}
+          </select>
+        </div>
       </div>
 
       {erro && <div className="alert alert-danger" role="alert">{erro}</div>}
