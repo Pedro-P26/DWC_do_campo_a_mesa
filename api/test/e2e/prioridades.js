@@ -16,6 +16,7 @@ module.exports = async ({ browser, paginas, verificar, apiUrl, webUrl, erros, pa
     await expect(comprador.getByRole('region', { name: 'Leilão em direto', exact: true })).toContainText('200 kg de kiwi Hayward');
     await comprador.getByLabel('Pesquisar produtos', { exact: true }).fill('Horta da Ribeira');
     await expect(comprador.locator('.cartao-produto')).toHaveCount(3);
+    await comprador.getByRole('button', { name: /Mais filtros/ }).click();
     await comprador.getByLabel('Localidade', { exact: true }).fill('Arcos');
     await expect(comprador.locator('.cartao-produto')).toHaveCount(0);
     await comprador.getByRole('button', { name: 'Limpar filtros' }).click();
@@ -36,7 +37,7 @@ module.exports = async ({ browser, paginas, verificar, apiUrl, webUrl, erros, pa
     await produtor.getByRole('link', { name: 'Ver página pública', exact: true }).click();
     await expect(produtor.getByText('Da nossa horta para a sua mesa.', { exact: true })).toBeVisible();
     await expect(produtor.getByText('Ponte de Lima', { exact: true }).first()).toBeVisible();
-    await expect(produtor.locator('iframe')).toHaveCount(0);
+    await expect(produtor.getByTitle('Mapa de ' + horta.produtor.nomeExploracao)).toHaveAttribute('src', /q=Ponte%20de%20Lima%2C%20Portugal/);
     await expect(produtor.getByText('Kiwi fresco e entrega pontual.', { exact: true })).toBeVisible();
     await produtor.screenshot({ path: path.join(pasta, 'pagina-publica.png'), fullPage: true });
   });

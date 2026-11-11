@@ -82,6 +82,12 @@ async function main() {
       paginas[papel] = pagina;
     }
     const pagina = paginas.comprador;
+    if (process.argv.includes('--notificacoes')) {
+      await require('./notificacoes')({ browser, verificar, apiUrl, webUrl, pasta, erros });
+      assert.deepEqual(erros, []);
+      await fs.writeFile(path.join(pasta, 'notificacoes.json'), JSON.stringify({ sucesso: true, testes: resultados, erros }, null, 2));
+      return;
+    }
     if (process.argv.includes('--localizacao')) {
       await require('./localizacao')({ browser, verificar, webUrl, pasta, erros });
       assert.deepEqual(erros, []);
@@ -133,15 +139,16 @@ async function main() {
       await publico.goto(webUrl);
       const kiwiCatalogo = publico.locator('.cartao-produto').filter({ has: publico.getByRole('heading', { name: 'Kiwi Hayward', exact: true }) });
       await expect(kiwiCatalogo.locator('.cartao-produto__avaliacao')).toHaveAccessibleName('5 de 5, 1 avaliação');
-      const alternarFiltros = publico.getByRole('button', { name: 'Filtros', exact: true });
+      const alternarFiltros = publico.getByRole('button', { name: 'Mais filtros', exact: true });
       await expect(alternarFiltros).toHaveAttribute('aria-expanded', 'false');
-      await expect(publico.getByLabel('Categoria', { exact: true })).toBeHidden();
+      await expect(publico.getByLabel('Localidade', { exact: true })).toBeHidden();
       await alternarFiltros.click();
-      await publico.getByLabel('Categoria', { exact: true }).selectOption('Fruta');
+      await publico.getByRole('navigation', { name: 'Categorias dos produtos' }).getByRole('button', { name: 'Fruta', exact: true }).click();
+      await expect(publico.getByRole('button', { name: 'Fruta', exact: true })).toHaveAttribute('aria-pressed', 'true');
       await expect(publico.locator('.cartao-produto')).toHaveCount(1);
       await publico.getByRole('button', { name: 'Limpar filtros', exact: true }).click();
       await publico.getByRole('button', { name: 'Fechar filtros', exact: true }).click();
-      await expect(publico.getByLabel('Categoria', { exact: true })).toBeHidden();
+      await expect(publico.getByLabel('Localidade', { exact: true })).toBeHidden();
       await publico.getByRole('link', { name: 'Ver detalhes de Kiwi Hayward', exact: true }).click();
       await expect(publico.getByRole('heading', { name: 'Kiwi Hayward', exact: true })).toBeVisible();
       await expect(publico.getByText('300 kg disponíveis', { exact: true })).toBeVisible();
@@ -175,6 +182,7 @@ async function main() {
     await verificar('Preço máximo: decimal, zero, combinação e limpeza', async () => {
       await pagina.goto(webUrl);
       await expect(pagina.locator('.cartao-produto')).toHaveCount(5);
+      await pagina.getByRole('button', { name: 'Mais filtros', exact: true }).click();
       await pagina.getByLabel('Preço máximo (€)').fill('1.5');
       await expect(pagina.locator('.cartao-produto')).toHaveCount(2);
       await pagina.getByLabel('Modo biológico').selectOption('Biologico');
@@ -342,6 +350,7 @@ async function main() {
     await testarProdutor();
     await testarEnunciado();
     await testarRiscos();
+    await require('./notificacoes')({ browser, verificar, apiUrl, webUrl, pasta, erros });
     await verificar('Sem erros JavaScript no browser', async () => assert.deepEqual(erros, []));
     await admin.setViewportSize({ width: 1280, height: 900 });
     await admin.goto(`${webUrl}/admin`);
@@ -384,6 +393,7 @@ async function testarSimulados() {
     pagina.on('request', pedido => { if (pedido.url().includes('/api/products')) pedidos.push(pedido.url()); });
     await pagina.goto(vite.resolvedUrls.local[0]);
     await expect(pagina.locator('.cartao-produto')).toHaveCount(8);
+    await pagina.getByRole('button', { name: 'Mais filtros', exact: true }).click();
     await pagina.getByLabel('Preço máximo (€)').fill('1.5');
     await expect(pagina.locator('.cartao-produto')).toHaveCount(2);
     await pagina.getByLabel('Modo biológico').selectOption('Biologico');

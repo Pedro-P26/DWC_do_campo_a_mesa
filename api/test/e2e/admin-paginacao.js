@@ -53,6 +53,15 @@ module.exports = async function ({ paginas, verificar, webUrl, pasta }) {
     });
     await verificar('Administração: moderar a última linha corrige a página sem alterar as outras listas', async () => {
       const produtores = secao('Produtores por validar'), reviews = secao('Avaliações denunciadas'), leiloes = secao('Leilões ativos');
+      const artigo = leiloes.locator('article').first();
+      const titulo = await artigo.locator('h3').textContent();
+      const leilao = await Auction.findOne({ lote: titulo });
+      await Auction.updateOne({ _id: leilao._id }, { $set: { 'licitacaoAtual.valor': 321, numLicitacoes: 4 } });
+      await expect(artigo).toContainText('321,00', { timeout: 15000 });
+      await expect(artigo).toContainText('4 licitações');
+      await validarPagina(leiloes, 2, 2);
+      await validarPagina(produtores, 2, 1);
+      await validarPagina(reviews, 2, 1);
       await produtores.getByRole('button', { name: /Aprovar produtor/ }).click();
       await expect(produtores.locator('article')).toHaveCount(5);
       await expect(produtores.getByRole('navigation')).toHaveCount(0);

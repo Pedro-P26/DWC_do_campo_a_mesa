@@ -26,7 +26,7 @@ module.exports = async ({ browser, verificar, webUrl, pasta, erros }) => {
           const links = () => cartoes.locator('h3 a').evaluateAll(elementos => elementos.map(e => e.href));
           const ids = await links();
           await nav.getByRole('button', { name: 'Seguinte', exact: true }).click();
-          await expect(pagina.getByRole('heading', { name: 'O nosso mercado', exact: true })).toBeFocused();
+          await expect(pagina.getByRole('heading', { name: 'Produtos', exact: true })).toBeFocused();
           await expect(pagina.getByText('A mostrar 13–24 de 25 produtos', { exact: true })).toBeVisible();
           ids.push(...await links());
           await nav.getByRole('button', { name: 'Seguinte', exact: true }).click();
