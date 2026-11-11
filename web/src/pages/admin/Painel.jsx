@@ -1,5 +1,5 @@
 // Administrador: validação de produtores, moderação e estatísticas
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Check, ChevronLeft, ChevronRight, EyeOff, Flag, Gavel, RefreshCw, ShieldCheck, ShoppingBag, Sprout, Star, Users, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi.js';
@@ -61,6 +61,25 @@ export default function PainelAdmin() {
   const produtores = useLista('/admin/produtores/pendentes');
   const reviews = useLista('/admin/reviews/denunciadas');
   const leiloes = useLista('/auctions?estado=ativo');
+  useEffect(() => {
+    if (leiloes.aCarregar || estatisticas.aCarregar) return;
+    let terminou = false;
+    let temporizador;
+    async function atualizarLeiloes() {
+      if (document.visibilityState === 'visible') {
+        await Promise.all([
+          leiloes.recarregar({ silencioso: true }),
+          estatisticas.recarregar({ silencioso: true })
+        ]);
+      }
+      if (!terminou) temporizador = setTimeout(atualizarLeiloes, 5000);
+    }
+    temporizador = setTimeout(atualizarLeiloes, 5000);
+    return () => {
+      terminou = true;
+      clearTimeout(temporizador);
+    };
+  }, [leiloes.recarregar, leiloes.aCarregar, estatisticas.recarregar, estatisticas.aCarregar]);
   const { token } = useAuth();
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
@@ -148,6 +167,7 @@ export default function PainelAdmin() {
     </div>
     <section aria-labelledby="leiloes-admin" className="painel-admin__secao">
       <TituloSecao id="leiloes-admin" icone={Gavel} titulo="Leilões ativos" consulta={leiloes} /><Estado consulta={leiloes} vazio="Não há leilões ativos." />
+      <p className="painel-admin__metadados">Atualização automática a cada 5 segundos.</p>
       {leiloes.itens.map(l => <article key={l._id} className="painel-admin__item">
         <h3><Link to={`/leiloes/${l._id}`}>{l.lote}</Link></h3>
         <p className="painel-admin__metadados">{l.produtor?.produtor?.nomeExploracao || l.produtor?.nome || 'Produtor indisponível'} · {euro(l.licitacaoAtual?.valor ?? l.precoBase)} · {l.numLicitacoes ?? 0} {(l.numLicitacoes ?? 0) === 1 ? 'licitação' : 'licitações'}<br />

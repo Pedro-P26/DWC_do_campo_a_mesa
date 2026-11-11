@@ -9,7 +9,7 @@ export function useApi(caminho) {
   const [aCarregar, setACarregar] = useState(Boolean(caminho));
   const pedido = useRef(null);
 
-  const recarregar = useCallback(async () => {
+  const recarregar = useCallback(async (opcoes = {}) => {
     pedido.current?.abort();
     if (!caminho) {
       setDados(null);
@@ -19,7 +19,7 @@ export function useApi(caminho) {
     }
     const controller = new AbortController();
     pedido.current = controller;
-    setACarregar(true);
+    if (opcoes?.silencioso !== true) setACarregar(true);
     setErro('');
     try {
       const resposta = await api(caminho, { token, signal: controller.signal });
