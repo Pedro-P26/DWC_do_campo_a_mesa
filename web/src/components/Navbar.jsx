@@ -2,6 +2,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { Leaf, UserRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCarrinho } from '../context/CarrinhoContext.jsx';
+import CentroNotificacoes from './CentroNotificacoes.jsx';
 
 export default function Navbar() {
   const { utilizador } = useAuth();
@@ -36,6 +37,7 @@ export default function Navbar() {
             </NavLink>
           </div>
         </div>
+        <CentroNotificacoes />
       </nav>
     </header>
   );

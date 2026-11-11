@@ -13,7 +13,8 @@ export function SocketProvider({ children }) {
     setSocket(s);
     return () => s.disconnect();
   }, [token, aValidar, sair]);
-  return <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>;
+  const ativo = socket?.auth?.token === token && !aValidar ? socket : null;
+  return <SocketContext.Provider value={ativo}>{children}</SocketContext.Provider>;
 }
 export const useSocket = () => useContext(SocketContext);
 export function useEventoSocket(evento, handler) {

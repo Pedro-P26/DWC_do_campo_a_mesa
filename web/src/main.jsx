@@ -5,6 +5,7 @@ import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { SocketProvider } from './context/SocketContext.jsx';
 import { CarrinhoProvider } from './context/CarrinhoContext.jsx';
+import { NotificacoesProvider } from './context/NotificacoesContext.jsx';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // menu colapsável, dropdowns, etc.
 import './styles/main.scss';
 
@@ -14,7 +15,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <SocketProvider>
       <CarrinhoProvider>
         <BrowserRouter>
-          <App />
+          <NotificacoesProvider><App /></NotificacoesProvider>
         </BrowserRouter>
       </CarrinhoProvider>
       </SocketProvider>
