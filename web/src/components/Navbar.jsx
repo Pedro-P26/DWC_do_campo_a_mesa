@@ -6,6 +6,7 @@ import { useCarrinho } from '../context/CarrinhoContext.jsx';
 export default function Navbar() {
   const { utilizador } = useAuth();
   const { linhas } = useCarrinho();
+  const inicial = utilizador?.nome?.trim().charAt(0).toLocaleUpperCase('pt-PT');
 
   return (
     <header className="barra-topo">
@@ -25,11 +26,14 @@ export default function Navbar() {
               <li className="nav-item"><NavLink to="/admin" className="nav-link">Administração</NavLink></li>
             )}
           </ul>
-          <div className="d-flex gap-2 align-items-center">
+          <div className="barra-topo__acoes">
             {utilizador?.papel === 'comprador' && (
-              <Link to="/carrinho" className="btn btn-outline-secondary">Carrinho ({linhas.length})</Link>
+              <NavLink to="/carrinho" className="barra-topo__carrinho">Carrinho ({linhas.length})</NavLink>
             )}
-            <NavLink to="/perfil" className="btn btn-outline-secondary d-inline-flex align-items-center gap-2"><UserRound size={17} aria-hidden="true" /> Perfil</NavLink>
+            <NavLink to="/perfil" className="barra-topo__perfil" aria-label="Perfil">
+              <span className="barra-topo__avatar" aria-hidden="true">{inicial || <UserRound size={17} />}</span>
+              <span>Perfil</span>
+            </NavLink>
           </div>
         </div>
       </nav>
