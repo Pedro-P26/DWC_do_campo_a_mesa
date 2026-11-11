@@ -7,6 +7,7 @@ import { useCarrinho } from '../context/CarrinhoContext.jsx';
 import { USAR_DADOS_SIMULADOS } from '../api/client.js';
 import produtosSimulados from '../data/produtos.json';
 import CartaoAvaliacao from '../components/CartaoAvaliacao.jsx';
+import MapaProdutor from '../components/MapaProdutor.jsx';
 
 export default function Produto() {
   const { id } = useParams();
@@ -82,6 +83,7 @@ function DetalhesProduto({ id }) {
         </dl>
       </div>
     </section>
+    <MapaProdutor produtor={produtor} />
     <section aria-labelledby="titulo-avaliacoes-produto" className="produto-avaliacoes">
       <div className="produto-avaliacoes__cabecalho"><div><p className="pagina-sobretitulo">QUEM JÁ COMPROU</p><h2 id="titulo-avaliacoes-produto">Avaliações do produto</h2></div>
       {media !== null && <div className="produto-avaliacoes__resumo"><Star size={22} aria-hidden="true" /><strong>{media.toLocaleString('pt-PT', { maximumFractionDigits: 1 })}<span> / 5</span></strong><small>{notas.length} {notas.length === 1 ? 'avaliação' : 'avaliações'}</small></div>}</div>

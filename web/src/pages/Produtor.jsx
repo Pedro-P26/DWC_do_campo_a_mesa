@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, MapPin, Star, Sprout, Package } from 'lucide-react';
 import CartaoProduto from '../components/CartaoProduto.jsx';
 import CartaoAvaliacao from '../components/CartaoAvaliacao.jsx';
+import MapaProdutor from '../components/MapaProdutor.jsx';
 import { USAR_DADOS_SIMULADOS } from '../api/client.js';
 import { useApi } from '../hooks/useApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -44,6 +45,7 @@ export default function Produtor() {
         </div>
       </section>
       {detalhes?.descricao && <section className="produtor-historia"><p className="pagina-sobretitulo">QUEM PRODUZ</p><h2>A nossa história</h2><p>{detalhes.descricao}</p></section>}
+      <MapaProdutor produtor={produtor} />
       <div className="secao-cabecalho"><h2>Produtos de {produtor.nome}</h2><span>Diretamente da exploração</span></div>
       <section className="grelha-produtos" aria-label="Produtos do produtor">
         {produtos.map((p) => (

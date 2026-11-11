@@ -59,3 +59,29 @@
 }
 .produtor-historia { padding: 1.5rem; border-radius: .75rem; background: #fff; border: 1px solid #dce3d7; h2 { font-family: Georgia, serif; font-size: 1.35rem; } > p:last-child { white-space: pre-line; color: $texto-secundario; line-height: 1.8; font-size: .9rem; margin-bottom: 0; max-width: 55rem; } }
 .produtor-avaliacoes { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #dce3d7; > h2 { font-family: Georgia, serif; font-size: 1.6rem; } }
+.produtor-localizacao {
+  margin: 1.5rem 0;
+  overflow: hidden;
+  border: 1px solid #dce3d7;
+  border-radius: .9rem;
+  background: #fff;
+
+  &__cabecalho {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: 1rem;
+    h2 { margin: 0 0 .4rem; font-family: Georgia, serif; font-size: 1.25rem; }
+    p { margin: 0; color: $texto-secundario; font-size: .8rem; }
+    a { display: inline-flex; align-items: center; min-height: 44px; font-size: .8rem; }
+  }
+
+  iframe { display: block; width: 100%; height: 280px; border: 0; }
+
+  @include a-partir-de(md) {
+    &__cabecalho { padding: 1.25rem; }
+    iframe { height: 340px; }
+  }
+}
