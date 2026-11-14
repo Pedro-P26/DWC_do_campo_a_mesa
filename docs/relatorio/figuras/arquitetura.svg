@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="440" viewBox="0 0 960 440" role="img" aria-labelledby="title desc">
+  <title id="title">Arquitetura do Do Campo à Mesa</title>
+  <desc id="desc">SPA e Laravel locais. A SPA comunica com Express e Socket.io num processo Node local. Node e Laravel usam MongoDB Atlas. As imagens dos produtos são guardadas localmente em api/uploads/.</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#52614e"/></marker></defs>
+  <rect width="960" height="440" fill="#ffffff"/>
+  <g font-family="Arial, sans-serif" text-anchor="middle" fill="#1f2a1e">
+    <rect x="285" y="24" width="360" height="267" rx="12" fill="#f2f5ef" stroke="#82917b"/>
+    <text x="465" y="51" font-size="18" font-weight="bold">Processo Node.js local · porta 3000</text>
+    <rect x="15" y="85" width="215" height="86" rx="8" fill="#ecf2e7" stroke="#2f5d3a"/>
+    <text x="122" y="119" font-size="21" font-weight="bold">SPA React</text><text x="122" y="148" font-size="16">localhost:5173</text>
+    <rect x="315" y="75" width="300" height="64" rx="6" fill="#fff" stroke="#2f5d3a"/>
+    <text x="465" y="114" font-size="21" font-weight="bold">API REST Express</text>
+    <rect x="315" y="156" width="300" height="55" rx="6" fill="#fff" stroke="#2f5d3a"/>
+    <text x="465" y="191" font-size="21" font-weight="bold">Socket.io</text>
+    <text x="465" y="250" font-size="18">Ciclo dos leilões</text>
+    <rect x="725" y="106" width="220" height="106" rx="8" fill="#ecf2e7" stroke="#2f5d3a"/>
+    <text x="835" y="146" font-size="21" font-weight="bold">MongoDB Atlas</text><text x="835" y="179" font-size="16">Base de dados gerida</text>
+    <rect x="15" y="307" width="215" height="84" rx="8" fill="#ecf2e7" stroke="#2f5d3a"/>
+    <text x="122" y="341" font-size="21" font-weight="bold">Laravel e Blade</text><text x="122" y="371" font-size="16">127.0.0.1:8000</text>
+    <rect x="315" y="323" width="300" height="64" rx="6" fill="#fff" stroke="#82917b"/>
+    <text x="465" y="349" font-size="18">Armazenamento local de imagens</text><text x="465" y="373" font-size="16">api/uploads/</text>
+  </g>
+  <g fill="none" stroke="#52614e" stroke-width="2" marker-end="url(#arrow)">
+    <path d="M230 107 H314"/><path d="M230 155 H261 V184 H314"/>
+    <path d="M645 157 H724"/><path d="M230 350 H266 V415 H835 V213"/>
+    <path d="M465 291 V322"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="13" fill="#52614e" text-anchor="middle">
+    <text x="272" y="94">HTTP</text><text x="265" y="208">Socket.io</text><text x="685" y="146">Dados</text><text x="766" y="403">Acesso direto</text>
+  </g>
+</svg>
