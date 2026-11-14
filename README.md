@@ -8,7 +8,7 @@ Trabalho prático individual de Desenvolvimento Web e para a Cloud, do Mestrado 
 
 - Catálogo público com pesquisa por produto, ingrediente e produtor, categorias, filtros de localidade, época, modo de produção e preço máximo, ordenação e paginação.
 - Página pública do produtor com apresentação da exploração, produtos, avaliações e mapa. As coordenadas permitem marcar a exploração. Na sua ausência, o mapa pesquisa a localidade em Portugal.
-- Registo de compradores e produtores, login, sessão persistente e acesso por papel. A publicação de produtos e leilões exige aprovação do produtor.
+- Registo de compradores e produtores, início de sessão, sessão persistente e acesso por papel. A publicação de produtos e leilões exige aprovação do produtor.
 - Carrinho com controlo de quantidades, levantamento ou entrega, uma encomenda por produtor e reserva de stock.
 - Acompanhamento das encomendas e notificações de alteração de estado em tempo real.
 - Avaliações de produtos e produtores após a entrega, denúncias e moderação.
@@ -27,18 +27,18 @@ Trabalho prático individual de Desenvolvimento Web e para a Cloud, do Mestrado 
 | `admin/` | Backoffice Laravel, Blade e integração MongoDB |
 | `api/test/e2e/` | Testes Playwright da SPA e do Laravel |
 | `api/test/interface/` | Testes de interface com respostas simuladas |
-| `docs/` | Estrutura do relatório |
+| `docs/` | Relatório e vídeo de demonstração |
 
 ## Requisitos
 
 - Node.js 20.19 ou superior e npm.
 - MongoDB Atlas ou MongoDB local configurado como replica set. As transações dos leilões exigem um replica set.
 - Para o backoffice, PHP 8.3 ou superior, Composer 2 e as extensões exigidas por `composer check-platform-reqs`, incluindo `mongodb`. Consultar [admin/README.md](admin/README.md).
-- Ligação à Internet para apresentar os mapas Google Maps.
+- Ligação à Internet para aceder ao MongoDB Atlas, quando utilizado, e apresentar os mapas Google Maps.
 
 ## Instalação e execução local
 
-Executar os comandos a partir da raiz do repositório, em terminais separados.
+Os exemplos seguintes utilizam PowerShell. Abrir um terminal na raiz do repositório para cada aplicação. Os passos de instalação preparam as dependências e a configuração inicial. Para utilizações posteriores, consultar a secção de arranque após a instalação.
 
 ### API
 
@@ -68,7 +68,7 @@ Para Atlas, substituir o URI pelo fornecido pelo cluster e indicar a base de dad
 npm run dev
 ```
 
-API em <http://localhost:3000/api> e Swagger UI em <http://localhost:3000/api-docs>. O comando `npm start` executa o servidor sem reinício automático.
+Os recursos da API utilizam o prefixo `/api`. O endereço <http://localhost:3000/api/health> permite verificar se o servidor está disponível. A documentação Swagger UI encontra-se em <http://localhost:3000/api-docs>. O comando `npm start` executa o servidor sem reinício automático.
 
 ### Aplicação web
 
@@ -109,7 +109,34 @@ php artisan config:clear
 composer run dev
 ```
 
-Abrir <http://127.0.0.1:8000> com uma conta de administrador. Nas instalações seguintes, usar `composer install`. O comando `setup` destina-se à instalação inicial e gera a chave da aplicação.
+Abrir <http://127.0.0.1:8000> com uma conta de administrador. O comando `setup` destina-se à instalação inicial e gera a chave da aplicação. Para instalar as dependências numa cópia já configurada ou após alterações ao `composer.lock`, executar `composer install`.
+
+### Arranque após a instalação
+
+Com as dependências instaladas e os ficheiros `.env` configurados, abrir três terminais na raiz do projeto e executar os comandos seguintes. A base MongoDB configurada deve estar acessível.
+
+No primeiro terminal, arrancar a API e o Socket.io.
+
+```powershell
+cd api
+npm run dev
+```
+
+No segundo terminal, arrancar a aplicação React.
+
+```powershell
+cd web
+npm run dev
+```
+
+No terceiro terminal, arrancar o backoffice Laravel.
+
+```powershell
+cd admin
+composer run dev
+```
+
+Manter os três terminais em execução durante a utilização da aplicação. Após alterações à configuração Laravel, executar `php artisan config:clear` em `admin/` antes de voltar a arrancar o backoffice.
 
 ## Dados iniciais
 
@@ -144,13 +171,19 @@ O mapa é incorporado na página pública do produtor e nos detalhes dos seus pr
 
 ## Imagens e configuração
 
-A API aceita JPEG, PNG e WebP até 5 MB. Sem `STORAGE_CONN`, guarda as imagens em `api/uploads/`. Com a ligação Azure Blob Storage configurada, guarda-as no container indicado por `STORAGE_CONTAINER`.
+A API aceita JPEG, PNG e WebP até 5 MB. Sem `STORAGE_CONN`, guarda as imagens em `api/uploads/`. Com a ligação Azure Blob Storage configurada, guarda-as no contentor indicado por `STORAGE_CONTAINER`.
 
-A SPA usa o endereço de `VITE_API_URL` durante a compilação. O domínio permitido pela API e pelos sockets é definido em `CLIENT_URL`. Os ficheiros `.env`, os uploads, as dependências e os resultados de testes ficam fora do Git.
+A SPA usa o endereço de `VITE_API_URL` durante a compilação. O domínio permitido pela API e pelos sockets é definido em `CLIENT_URL`. Os ficheiros `.env`, os ficheiros carregados, as dependências e os resultados de testes ficam fora do Git.
 
 ## Testes
 
-Executar as verificações seguintes em `api/`.
+A primeira execução dos testes Playwright requer a instalação do Chromium. Executar em `api/`, após a instalação das dependências.
+
+```powershell
+npx playwright install chromium
+```
+
+Executar as verificações seguintes na mesma pasta.
 
 ```powershell
 npm test
@@ -160,13 +193,7 @@ npm run test:e2e
 
 - `npm test` verifica a API, persistência, autorizações, stock, avaliações e concorrência com MongoDB temporário.
 - `npm run docs:validate` valida a especificação OpenAPI.
-- `npm run test:e2e` verifica a SPA, API e Socket.io com Playwright, incluindo responsividade. Os serviços e a base de dados são temporários.
-
-A primeira execução Playwright exige a instalação do Chromium.
-
-```powershell
-npx playwright install chromium
-```
+- `npm run test:e2e` verifica a SPA, API e Socket.io com Playwright, incluindo a adaptação a diferentes dimensões de ecrã. Os serviços e a base de dados são temporários.
 
 As verificações específicas podem ser executadas em `api/`.
 
@@ -182,7 +209,13 @@ npm run test:e2e:navegadores
 npm run test:e2e:todos
 ```
 
-O teste de localização verifica o mapa do produtor e a indicação da localidade. O comando `test:e2e:navegadores` executa a suite em Chromium, Firefox e WebKit e exige os respetivos navegadores instalados. `test:e2e:todos` inclui a SPA, o carrinho e o backoffice Laravel.
+O teste de localização verifica o mapa do produtor e a indicação da localidade. O comando `test:e2e:navegadores` executa o conjunto de testes em Chromium, Firefox e WebKit. Para preparar os três navegadores, executar em `api/`.
+
+```powershell
+npx playwright install chromium firefox webkit
+```
+
+O comando `test:e2e:todos` inclui a SPA, o carrinho e o backoffice Laravel.
 
 Executar as verificações seguintes em `admin/`.
 
@@ -194,15 +227,11 @@ composer test:browser
 
 As verificações MongoDB e Playwright do Laravel usam bases temporárias e exigem as dependências de `api/` e `web/` instaladas. Os resultados ficam em `api/test-results/` e `admin/test-results/`.
 
-## Estado da entrega
+## Documentação e demonstração
 
 A implementação local inclui a SPA, API documentada, autenticação, persistência, leilões, notificações e backoffice Laravel.
 
-A entrega exige ainda os elementos seguintes.
+Os elementos de apoio à entrega encontram-se em `docs/`.
 
-- Publicação da SPA e API na Cloud, com HTTPS, WebSockets e endereços públicos.
-- Armazenamento das imagens na Cloud e verificação das rotas internas após publicação.
-- Relatório final com arquitetura, decisões técnicas, consistência dos leilões, resultados dos testes, custos e declaração das ferramentas e IA utilizadas.
-- Vídeo de demonstração e preparação da defesa.
-
-A estrutura do relatório encontra-se em [docs/relatorio.md](docs/relatorio.md).
+- [Relatório](docs/relatorio.md), com arquitetura, decisões técnicas, resultados dos testes e declaração de utilização de IA.
+- [Vídeo de demonstração](docs/demonstracao-do-campo-a-mesa.mp4), com os perfis de utilização, leilão em duas janelas e vista mobile.
